@@ -1,0 +1,84 @@
+{
+  "defaultApartmentId": "a",
+  "defaultMonthlyIncome": 6500,
+  "incomeBounds": {
+    "min": 0,
+    "max": 100000,
+    "step": 50
+  },
+  "equityModel": {
+    "incomeMonthsFactor": 8,
+    "minEquity": 20000,
+    "maxTotalInvestmentRatio": 0.4
+  },
+  "assumptions": {
+    "rentPerSqm": 19.25,
+    "ancillaryCostRate": 0.11,
+    "vacancyRate": 0.02,
+    "interestRate": 0.038,
+    "repaymentRate": 0.02,
+    "kfwMaxLoan": 150000,
+    "kfwGrantRate": 0.1,
+    "monumentShare": 0.72,
+    "annualGrowthRate": 0.02,
+    "years": 20,
+    "afaSchedule": [
+      {
+        "startYear": 1,
+        "endYear": 8,
+        "rate": 0.09
+      },
+      {
+        "startYear": 9,
+        "endYear": 12,
+        "rate": 0.07
+      }
+    ]
+  },
+  "taxBrackets": [
+    {
+      "maxMonthlyIncome": 2800,
+      "rate": 0.24
+    },
+    {
+      "maxMonthlyIncome": 3800,
+      "rate": 0.29
+    },
+    {
+      "maxMonthlyIncome": 5200,
+      "rate": 0.34
+    },
+    {
+      "maxMonthlyIncome": 7000,
+      "rate": 0.38
+    },
+    {
+      "maxMonthlyIncome": 999999,
+      "rate": 0.42
+    }
+  ],
+  "apartments": [
+    {
+      "id": "a",
+      "label": "Apartment A",
+      "subtitle": "1-Zimmer, ca. 27 m2",
+      "size": 27,
+      "purchasePrice": 210000,
+      "image": "/floorplans/apartment-a.png",
+      "monthlyManagement": 55,
+      "monthlyMaintenance": 60,
+      "monthlyOtherCost": 20
+    },
+    {
+      "id": "b",
+      "label": "Apartment B",
+      "subtitle": "2-Zimmer, ca. 35 m2",
+      "size": 35,
+      "purchasePrice": 275000,
+      "image": "/floorplans/apartment-b.png",
+      "monthlyManagement": 65,
+      "monthlyMaintenance": 75,
+      "monthlyOtherCost": 25
+    }
+  ]
+}
