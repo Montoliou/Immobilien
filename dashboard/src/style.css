@@ -57,6 +57,212 @@ p {
   width: 100%;
 }
 
+.config-menu {
+  position: fixed;
+  top: var(--space-16);
+  left: var(--space-16);
+  z-index: 40;
+  width: min(432px, calc(100vw - 32px));
+}
+
+.config-toggle {
+  width: fit-content;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid rgb(16 38 52 / 14%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 88%);
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 1px 2px rgb(16 38 52 / 8%);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  list-style: none;
+}
+
+.config-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.config-menu[open] .config-toggle {
+  color: var(--accent);
+  border-color: rgb(47 79 95 / 26%);
+}
+
+.config-panel {
+  margin-top: var(--space-8);
+  border: 1px solid var(--base-2);
+  border-radius: var(--radius-12);
+  background: rgb(255 255 255 / 96%);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(14px);
+  padding: var(--space-16);
+  display: grid;
+  gap: var(--space-12, 12px);
+}
+
+.config-form {
+  margin: 0;
+}
+
+.config-panel-header {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.config-panel-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.config-panel-copy {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.config-section-list {
+  display: grid;
+  gap: var(--space-8);
+  max-height: min(68vh, 640px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.config-group {
+  border: 1px solid var(--base-2);
+  border-radius: var(--radius-12);
+  background: #fcfcfd;
+  overflow: hidden;
+}
+
+.config-group-toggle {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.config-group-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.config-group-toggle span {
+  color: var(--ink-strong);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.config-group-toggle small {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.config-group[open] .config-group-toggle {
+  background: #f6f8fa;
+  border-bottom: 1px solid var(--base-2);
+}
+
+.config-grid {
+  display: grid;
+  gap: var(--space-12);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: var(--space-16);
+}
+
+.config-field {
+  display: grid;
+  gap: 6px;
+}
+
+.config-field-label {
+  color: var(--ink-strong);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.config-field-hint {
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.config-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.config-input,
+.config-select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--base-3);
+  border-radius: var(--radius-8);
+  background: #fff;
+  color: var(--ink-strong);
+  padding: 10px 40px 10px 12px;
+  font: inherit;
+}
+
+.config-select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 2px),
+    calc(100% - 12px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.config-input:focus-visible,
+.config-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.config-input-unit {
+  position: absolute;
+  right: 12px;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.config-input-unit:empty {
+  display: none;
+}
+
+.config-actions {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.btn-compact {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+}
+
+.config-status {
+  min-height: 20px;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.config-status-error {
+  color: var(--negative);
+}
+
 .page {
   max-width: 1280px;
   margin: 0 auto;
@@ -211,16 +417,22 @@ p {
 }
 
 .apartment-image-wrap {
+  aspect-ratio: 4 / 3;
   border-radius: var(--radius-8);
   overflow: hidden;
   border: 1px solid var(--base-2);
   background: #eef2f4;
+  padding: var(--space-16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .apartment-image-wrap img {
   width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
   display: block;
 }
 
@@ -325,34 +537,239 @@ p {
 
 .liquidity-block {
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-16);
 }
 
-.liquidity-table {
+.liquidity-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-16);
+  align-items: baseline;
+}
+
+.liquidity-head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.liquidity-mode {
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.liquidity-view-nav,
+.liquidity-inline-toggle {
+  min-height: 36px;
+  min-width: 36px;
+  padding: 8px 10px;
+  border: 1px solid var(--base-3);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink-strong);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.liquidity-view-nav {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.liquidity-view-nav:hover,
+.liquidity-inline-toggle:hover {
+  border-color: #b8c4cb;
+  background: #f8fafb;
+  transform: translateY(-1px);
+}
+
+.liquidity-view-nav:focus-visible,
+.liquidity-inline-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.liquidity-view-content {
+  display: grid;
+}
+
+.liquidity-chart-card {
   width: 100%;
-  border-collapse: collapse;
   border: 1px solid var(--base-2);
   border-radius: var(--radius-12);
-  overflow: hidden;
   background: #fbfcfd;
+  padding: var(--space-16);
+  display: grid;
+  gap: var(--space-16);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
-.liquidity-table th,
-.liquidity-table td {
-  padding: 12px 14px;
+.liquidity-chart-card:hover {
+  border-color: #b8c4cb;
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.liquidity-chart-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.liquidity-chart-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-16);
+  align-items: flex-start;
+}
+
+.liquidity-chart-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.liquidity-chart-copy,
+.liquidity-chart-range {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.liquidity-chart {
+  --year-count: 20;
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: var(--space-12);
+  align-items: stretch;
+}
+
+.liquidity-scale {
+  display: grid;
+  grid-template-rows: 1fr auto 1fr;
+  align-items: center;
+  justify-items: end;
+  padding-bottom: 24px;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+}
+
+.liquidity-chart-plot {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--year-count), minmax(0, 1fr));
+  gap: 6px;
+}
+
+.liquidity-chart-plot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 96px;
+  height: 1px;
+  background: #c9d3d9;
+}
+
+.liquidity-year {
+  display: grid;
+  grid-template-rows: 192px auto;
+  gap: 8px;
+}
+
+.liquidity-year-plot {
+  position: relative;
+  min-height: 192px;
+}
+
+.liquidity-bar {
+  position: absolute;
+  left: 18%;
+  width: 64%;
+  min-height: 0;
+  box-shadow: 0 1px 2px rgb(16 38 52 / 10%);
+}
+
+.liquidity-bar-positive {
+  bottom: 50%;
+  height: var(--bar-size);
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(180deg, #577b8c 0%, #2f4f5f 100%);
+}
+
+.liquidity-bar-negative {
+  top: 50%;
+  height: var(--bar-size);
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(180deg, #d98f7a 0%, #b65f4d 100%);
+}
+
+.liquidity-year-label {
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+  text-align: center;
+}
+
+.liquidity-table-card {
+  border: 1px solid var(--base-2);
+  border-radius: var(--radius-12);
+  background: #fbfcfd;
+  overflow: hidden;
+}
+
+.liquidity-table-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-16);
+  align-items: flex-start;
+  padding: var(--space-16);
   border-bottom: 1px solid var(--base-2);
+}
+
+.liquidity-table-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: min(44vh, 336px);
+}
+
+.liquidity-detail-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.liquidity-detail-table th,
+.liquidity-detail-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--base-2);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.liquidity-detail-table th:first-child,
+.liquidity-detail-table td:first-child {
   text-align: left;
 }
 
-.liquidity-table th {
-  font-size: 0.78rem;
+.liquidity-detail-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--ink-soft);
   background: #f2f6f8;
 }
 
-.liquidity-table tbody tr:last-child td {
+.liquidity-detail-table tbody tr:last-child td {
   border-bottom: 0;
 }
 
@@ -532,6 +949,12 @@ p {
 }
 
 @media (max-width: 768px) {
+  .config-menu {
+    top: var(--space-8);
+    left: var(--space-8);
+    width: min(100vw - 16px, 432px);
+  }
+
   .page {
     padding: var(--space-24) var(--space-16) var(--space-48);
     gap: var(--space-16);
@@ -545,13 +968,52 @@ p {
     flex-direction: column;
   }
 
+  .liquidity-head,
+  .liquidity-chart-meta,
+  .liquidity-table-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .liquidity-head-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .liquidity-chart {
+    grid-template-columns: 48px 1fr;
+    gap: var(--space-8);
+  }
+
+  .liquidity-scale {
+    padding-bottom: 20px;
+    font-size: 0.68rem;
+  }
+
+  .liquidity-chart-plot {
+    gap: 4px;
+  }
+
+  .liquidity-chart-plot::before {
+    top: 84px;
+  }
+
+  .liquidity-year {
+    grid-template-rows: 168px auto;
+  }
+
+  .liquidity-year-plot {
+    min-height: 168px;
+  }
+
   .btn {
     width: 100%;
   }
 
   .metric-grid,
   .assumption-grid,
-  .facts-grid {
+  .facts-grid,
+  .config-grid {
     grid-template-columns: 1fr;
   }
 }

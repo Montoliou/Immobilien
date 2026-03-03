@@ -28,6 +28,11 @@ type Assumptions = {
   vacancyRate: number
   monthlyManagementFlat: number
   monthlyMaintenanceFlat: number
+  purchaseYear: number
+  rentStartYear: number
+  rentStartQuarter: number
+  afaStartYear: number
+  afaStartQuarter: number
   kfwLoanAmount: number
   kfwInterestRate: number
   kfwRepaymentRate: number
@@ -47,16 +52,67 @@ type IncomeBounds = {
   step: number
 }
 
+type EquityModel = {
+  incomeMonthsFactor: number
+  minEquity: number
+  maxTotalInvestmentRatio: number
+}
+
+type TaxBracket = {
+  maxMonthlyIncome: number
+  rate: number
+}
+
 type CalculationConfig = {
   defaultApartmentId: ApartmentId
   defaultAnnualGrossIncome: number
   incomeBounds: IncomeBounds
+  equityModel: EquityModel
   assumptions: Assumptions
+  taxBrackets: TaxBracket[]
   apartments: ApartmentOption[]
+}
+
+type ConfigFieldOption = {
+  value: string
+  label: string
+}
+
+type ConfigNumberField = {
+  type: 'number'
+  id: string
+  label: string
+  hint: string
+  mode: 'number' | 'currency' | 'percent'
+  step: number
+  min?: number
+  max?: number
+  get: (config: CalculationConfig) => number
+  set: (config: CalculationConfig, value: number) => void
+}
+
+type ConfigSelectField = {
+  type: 'select'
+  id: string
+  label: string
+  hint: string
+  options: (config: CalculationConfig) => ConfigFieldOption[]
+  get: (config: CalculationConfig) => string
+  set: (config: CalculationConfig, value: string) => void
+}
+
+type ConfigField = ConfigNumberField | ConfigSelectField
+
+type ConfigSection = {
+  title: string
+  copy: string
+  open: boolean
+  fields: ConfigField[]
 }
 
 type YearlyLiquidityRow = {
   year: number
+  calendarYear: number
   propertyValue: number
   grossRent: number
   vacancyCost: number
@@ -102,7 +158,12 @@ type ProjectionResult = {
   yearlyLiquidityRows: YearlyLiquidityRow[]
 }
 
-const config = calculationConfig as CalculationConfig
+type LiquidityViewMode = 'afterTaxChart' | 'beforeTaxChart' | 'table'
+
+const CONFIG_STORAGE_KEY = 'york-living-runtime-config'
+const defaultConfig = deepCloneConfig(calculationConfig as CalculationConfig)
+const config = loadStoredConfig(defaultConfig)
+const configSections = buildConfigSections()
 const apartments = config.apartments
 const assumptions = config.assumptions
 const projectionYears = assumptions.years
@@ -114,6 +175,33 @@ const refinanceRepaymentRate = 0.02
 const app = getElementById<HTMLDivElement>('app')
 
 app.innerHTML = `
+  <details class="config-menu">
+    <summary class="config-toggle">Parameter</summary>
+    <div class="config-panel">
+      <div class="config-panel-header">
+        <div>
+          <p class="config-panel-title">Rechenparameter</p>
+          <p class="config-panel-copy">
+            Zins, Tilgung, Kaufpreis und Steuerannahmen direkt im UI anpassen. Aenderungen gelten
+            lokal in diesem Browser, bis du sie zuruecksetzt.
+          </p>
+        </div>
+      </div>
+
+      <form id="config-form" class="config-form" autocomplete="off">
+        <div class="config-section-list">${renderConfigSections(configSections, config)}</div>
+      </form>
+
+      <div class="config-actions">
+        <button id="apply-config" class="btn btn-primary btn-compact" type="button">Uebernehmen</button>
+        <button id="reset-config" class="btn btn-secondary btn-compact" type="button">Zuruecksetzen</button>
+        <button id="copy-config" class="btn btn-secondary btn-compact" type="button">Backup JSON</button>
+      </div>
+
+      <p id="config-status" class="config-status" role="status" aria-live="polite"></p>
+    </div>
+  </details>
+
   <main class="page">
     <section class="panel hero">
       <div class="hero-visual">
@@ -177,10 +265,6 @@ app.innerHTML = `
             <strong id="out-equity-amount" class="slider-value">-</strong>
           </label>
         </div>
-
-        <p class="small-note">
-          Alle zentralen Rechenparameter werden aus <code>src/data/calculation-config.json</code> geladen.
-        </p>
       </section>
 
       <section class="panel result-panel" aria-live="polite">
@@ -201,33 +285,29 @@ app.innerHTML = `
         </div>
 
         <div class="liquidity-block">
-          <p class="assumption-label">Liquiditaet nach Projektphase (monatlich)</p>
-          <table class="liquidity-table" aria-label="Liquiditaet nach Bauphase, Afa-Phasen und Folgefinanzierung">
-            <thead>
-              <tr>
-                <th>Phase</th>
-                <th>Monatliche Liquiditaet</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Bauphase</td>
-                <td id="out-liquidity-construction">-</td>
-              </tr>
-              <tr>
-                <td>Denkmal-AfA (Jahr 1-8)</td>
-                <td id="out-liquidity-afa-1-8">-</td>
-              </tr>
-              <tr>
-                <td>Denkmal-AfA (Jahr 9-12)</td>
-                <td id="out-liquidity-afa-9-12">-</td>
-              </tr>
-              <tr>
-                <td>Nach Denkmal-AfA (ab Jahr 13, Refinanzierung 3,0 % Zins + 2,0 % Tilgung)</td>
-                <td id="out-liquidity-post-afa">-</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="liquidity-head">
+            <p class="assumption-label">Monatliche Liquiditaet ueber ${projectionYears} Jahre</p>
+            <div class="liquidity-head-actions">
+              <button
+                id="liquidity-view-prev"
+                class="liquidity-view-nav"
+                type="button"
+                aria-label="Vorherige Liquiditaetsansicht"
+              >
+                ‹
+              </button>
+              <p id="liquidity-mode" class="liquidity-mode">Nach Steuern</p>
+              <button
+                id="liquidity-view-next"
+                class="liquidity-view-nav"
+                type="button"
+                aria-label="Naechste Liquiditaetsansicht"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+          <div id="liquidity-view-content" class="liquidity-view-content"></div>
           <button id="download-liquidity-pdf" class="btn btn-secondary" type="button">
             Liquiditaetsrechnung als PDF herunterladen
           </button>
@@ -263,10 +343,11 @@ app.innerHTML = `
     </section>
 
     <section class="panel facts-panel">
-      <h2>Warum das Objekt fuer viele Kunden emotional greifbar ist</h2>
+      <h2>Ein paar schnelle Fakten über Münster.</h2>
       <p class="lead">
-        Die Broschuere verbindet klare Investment-Argumente mit einem alltagsnahen Wohnbild: kompakte
-        Grundrisse, starke Nachfrage und kurze Wege in Muenster.
+        Diese Kennzahlen zeigen vor allem eines: Münster verbindet knappen Wohnraum, hohe Nachfrage
+        nach kompakten Apartments und eine Lage mit kurzen Wegen in die
+        Innenstadt.
       </p>
       <div class="facts-grid">
         <article class="fact-card">
@@ -334,6 +415,15 @@ const incomeInput = getElementById<HTMLInputElement>('annual-gross-income')
 const growthInput = getElementById<HTMLInputElement>('growth-rate')
 const equityInput = getElementById<HTMLInputElement>('equity-amount')
 const shareStatus = getElementById<HTMLElement>('share-status')
+const configForm = getElementById<HTMLFormElement>('config-form')
+const configStatus = getElementById<HTMLElement>('config-status')
+const liquidityModeLabel = getElementById<HTMLElement>('liquidity-mode')
+const liquidityViewPrevButton = getElementById<HTMLButtonElement>('liquidity-view-prev')
+const liquidityViewNextButton = getElementById<HTMLButtonElement>('liquidity-view-next')
+const liquidityViewContent = getElementById<HTMLDivElement>('liquidity-view-content')
+const applyConfigButton = getElementById<HTMLButtonElement>('apply-config')
+const resetConfigButton = getElementById<HTMLButtonElement>('reset-config')
+const copyConfigButton = getElementById<HTMLButtonElement>('copy-config')
 const copyDashboardButton = getElementById<HTMLButtonElement>('copy-dashboard-link')
 const copyScenarioButton = getElementById<HTMLButtonElement>('copy-scenario-link')
 const downloadLiquidityPdfButton = getElementById<HTMLButtonElement>('download-liquidity-pdf')
@@ -342,12 +432,16 @@ let selectedApartmentId: ApartmentId = config.defaultApartmentId
 let annualGrossIncome = config.defaultAnnualGrossIncome
 let annualGrowthRatePercent = assumptions.annualGrowthRate * 100
 let investedEquity = getDefaultEquityForApartment(selectedApartmentId)
+let liquidityViewMode: LiquidityViewMode = 'afterTaxChart'
 
 hydrateStateFromUrl()
 renderApartmentCards()
 writeInputValue(annualGrossIncome)
 writeGrowthInputValue(annualGrowthRatePercent)
 writeEquityInputValue(investedEquity)
+if (hasStoredConfig()) {
+  setConfigStatus('Lokale Konfigurationsaenderungen sind aktiv.')
+}
 renderProjection()
 
 incomeInput.addEventListener('input', () => {
@@ -409,17 +503,71 @@ downloadLiquidityPdfButton.addEventListener('click', () => {
   downloadLiquidityPdf(result)
 })
 
+liquidityViewPrevButton.addEventListener('click', () => {
+  retreatLiquidityView()
+  renderProjection()
+})
+
+liquidityViewNextButton.addEventListener('click', () => {
+  advanceLiquidityView()
+  renderProjection()
+})
+
+liquidityViewContent.addEventListener('click', (event) => {
+  const target = event.target
+  if (!(target instanceof HTMLElement)) {
+    return
+  }
+  const trigger = target.closest<HTMLElement>('[data-liquidity-cycle="true"]')
+  if (!trigger) {
+    return
+  }
+  advanceLiquidityView()
+  renderProjection()
+})
+
+applyConfigButton.addEventListener('click', () => {
+  try {
+    const validConfig = buildConfigFromForm(configForm)
+    saveStoredConfig(validConfig)
+    setConfigStatus('Konfiguration gespeichert. Seite wird neu geladen.')
+    window.setTimeout(() => window.location.reload(), 250)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
+    setConfigStatus(`Konfiguration konnte nicht gespeichert werden: ${message}`, true)
+  }
+})
+
+resetConfigButton.addEventListener('click', () => {
+  clearStoredConfig()
+  setConfigStatus('Lokale Konfiguration entfernt. Seite wird neu geladen.')
+  window.setTimeout(() => window.location.reload(), 250)
+})
+
+copyConfigButton.addEventListener('click', async () => {
+  try {
+    const nextConfig = buildConfigFromForm(configForm)
+    const copied = await copyToClipboard(serializeConfig(nextConfig))
+    setConfigStatus(
+      copied
+        ? 'Konfigurations-Backup wurde als JSON kopiert.'
+        : 'Backup konnte nicht automatisch kopiert werden.',
+      !copied,
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
+    setConfigStatus(`Konfiguration ist noch nicht gueltig: ${message}`, true)
+  }
+})
+
 function renderApartmentCards(): void {
   apartmentContainer.innerHTML = apartments
     .map((apartment) => {
       const activeClass = apartment.id === selectedApartmentId ? ' apartment-card-active' : ''
-      const apartmentHint =
-        apartment.id === 'a'
-          ? ''
-          : `
-            <p class="apartment-title">${apartment.label}</p>
-            <p class="apartment-subtitle">${apartment.subtitle}</p>
-          `
+      const apartmentHint = `
+        <p class="apartment-title">${apartment.label}</p>
+        <p class="apartment-subtitle">${apartment.subtitle}</p>
+      `
       return `
         <button
           type="button"
@@ -467,13 +615,6 @@ function renderProjection(): void {
   setText('out-cashflow20', formatSignedCurrency(result.cumulativeCashflow20))
   setText('out-growth-rate', `${formatSignedPercent(result.annualGrowthRate * 100)} % pro Jahr`)
   setText('out-equity-amount', formatCurrency(result.startEquity))
-  setText(
-    'out-liquidity-construction',
-    formatSignedCurrency(result.constructionPhaseMonthlyLiquidity),
-  )
-  setText('out-liquidity-afa-1-8', formatSignedCurrency(result.afaPhaseOneMonthlyLiquidity))
-  setText('out-liquidity-afa-9-12', formatSignedCurrency(result.afaPhaseTwoMonthlyLiquidity))
-  setText('out-liquidity-post-afa', formatSignedCurrency(result.postAfaMonthlyLiquidity))
   setText('out-path-end', formatCurrency(result.wealth20))
   setText('out-start-equity', formatCurrency(result.startEquity))
   setText(
@@ -488,6 +629,7 @@ function renderProjection(): void {
   )
   setText('out-refinance-debt', formatCurrency(result.refinanceDebtBase))
 
+  renderLiquidityView(result)
   renderWealthPath(result.yearlyWealthPath)
   syncUrlState()
 }
@@ -499,8 +641,8 @@ function calculateProjection(
   selectedEquity: number,
 ): ProjectionResult {
   const annualBaseRent = apartment.size * assumptions.rentPerSqm * 12
-  const annualManagementCosts = assumptions.monthlyManagementFlat * 12
-  const annualMaintenanceCosts = assumptions.monthlyMaintenanceFlat * 12
+  const annualManagementCostsFull = assumptions.monthlyManagementFlat * 12
+  const annualMaintenanceCostsFull = assumptions.monthlyMaintenanceFlat * 12
   const taxableIncome = grossAnnualIncome * 0.8
   const annualTax = calculateGrundtabelleTax(taxableIncome)
   const marginalTaxRate = calculateMarginalTaxRate(taxableIncome)
@@ -519,8 +661,9 @@ function calculateProjection(
 
   const kfwTargetDebtService = initialKfwDebt * (assumptions.kfwInterestRate + assumptions.kfwRepaymentRate)
   const bankTargetDebtService = initialBankDebt * (assumptions.bankInterestRate + assumptions.bankRepaymentRate)
-  const afaPhaseOneEndYear = getAfaPhaseOneEndYear()
+  const afaPhaseOneEndYear = getProjectionYearForAfaYear(getAfaPhaseOneEndYear())
   const afaEndYear = getAfaEndYear()
+  const afaProjectionEndYear = getProjectionYearForAfaYear(afaEndYear)
   const constructionInterestLoad =
     (kfwLoan * 0.5) * assumptions.kfwInterestRate + (bankLoan * 0.5) * assumptions.bankInterestRate
   const constructionPhaseMonthlyLiquidity = -(constructionInterestLoad / 12)
@@ -541,6 +684,9 @@ function calculateProjection(
   const yearlyLiquidityRows: YearlyLiquidityRow[] = []
 
   for (let year = 1; year <= assumptions.years; year += 1) {
+    const calendarYear = getCalendarYearForProjectionYear(year)
+    const rentShare = getRentShareForProjectionYear(year)
+    const constructionShare = 1 - rentShare
     let yearlyDebtService = 0
     let kfwInterest = 0
     let kfwPrincipal = 0
@@ -556,13 +702,24 @@ function calculateProjection(
     }
 
     if (year <= afaEndYear) {
-      kfwInterest = remainingKfwDebt * assumptions.kfwInterestRate
-      kfwPrincipal =
+      const normalKfwInterest = remainingKfwDebt * assumptions.kfwInterestRate
+      const normalKfwPrincipal =
         year <= assumptions.kfwGraceYears
           ? 0
-          : Math.min(Math.max(kfwTargetDebtService - kfwInterest, 0), remainingKfwDebt)
-      bankInterest = remainingBankDebt * assumptions.bankInterestRate
-      bankPrincipal = Math.min(Math.max(bankTargetDebtService - bankInterest, 0), remainingBankDebt)
+          : Math.min(Math.max(kfwTargetDebtService - normalKfwInterest, 0), remainingKfwDebt)
+      const normalBankInterest = remainingBankDebt * assumptions.bankInterestRate
+      const normalBankPrincipal = Math.min(
+        Math.max(bankTargetDebtService - normalBankInterest, 0),
+        remainingBankDebt,
+      )
+      const constructionKfwInterest = (kfwLoan * 0.5) * assumptions.kfwInterestRate * constructionShare
+      const constructionBankInterest =
+        (bankLoan * 0.5) * assumptions.bankInterestRate * constructionShare
+
+      kfwInterest = constructionKfwInterest + normalKfwInterest * rentShare
+      kfwPrincipal = normalKfwPrincipal * rentShare
+      bankInterest = constructionBankInterest + normalBankInterest * rentShare
+      bankPrincipal = normalBankPrincipal * rentShare
 
       yearlyDebtService = kfwInterest + kfwPrincipal + bankInterest + bankPrincipal
       remainingKfwDebt -= kfwPrincipal
@@ -578,12 +735,16 @@ function calculateProjection(
       remainingDebt -= refinancePrincipal
     }
 
-    const yearlyGrossRent = annualBaseRent * Math.pow(1 + annualGrowthRate, year - 1)
+    const fullYearGrossRent = annualBaseRent * Math.pow(1 + annualGrowthRate, year - 1)
+    const yearlyGrossRent = fullYearGrossRent * rentShare
     const yearlyVacancyCosts = yearlyGrossRent * assumptions.vacancyRate
-    const yearlyOperatingCosts = yearlyVacancyCosts + annualManagementCosts + annualMaintenanceCosts
+    const yearlyOperatingCosts =
+      yearlyVacancyCosts +
+      annualManagementCostsFull * rentShare +
+      annualMaintenanceCostsFull * rentShare
     const yearlyNetBeforeDebt = yearlyGrossRent - yearlyOperatingCosts
 
-    const yearlyAfaRate = getAfaRateForYear(year)
+    const yearlyAfaRate = getAfaFactorForProjectionYear(year)
     const yearlyTaxBenefit =
       apartment.purchasePrice * assumptions.monumentShare * yearlyAfaRate * marginalTaxRate
     const yearlyCashflow = yearlyNetBeforeDebt - yearlyDebtService + yearlyTaxBenefit
@@ -592,7 +753,7 @@ function calculateProjection(
     if (year <= afaPhaseOneEndYear) {
       afaPhaseOneCashflow += yearlyCashflow
       afaPhaseOneYears += 1
-    } else if (year <= afaEndYear) {
+    } else if (year <= afaProjectionEndYear) {
       afaPhaseTwoCashflow += yearlyCashflow
       afaPhaseTwoYears += 1
     } else {
@@ -605,11 +766,12 @@ function calculateProjection(
     yearlyWealthPath.push(yearlyNetWealth)
     yearlyLiquidityRows.push({
       year,
+      calendarYear,
       propertyValue: yearlyValue,
       grossRent: yearlyGrossRent,
       vacancyCost: yearlyVacancyCosts,
-      managementCost: annualManagementCosts,
-      maintenanceCost: annualMaintenanceCosts,
+      managementCost: annualManagementCostsFull * rentShare,
+      maintenanceCost: annualMaintenanceCostsFull * rentShare,
       netBeforeDebt: yearlyNetBeforeDebt,
       kfwInterest,
       kfwPrincipal,
@@ -631,7 +793,7 @@ function calculateProjection(
   const wealthGain20 = wealth20 - startEquity
   const grossYield = (annualBaseRent / apartment.purchasePrice) * 100
   const yearOneOperatingCosts =
-    annualBaseRent * assumptions.vacancyRate + annualManagementCosts + annualMaintenanceCosts
+    annualBaseRent * assumptions.vacancyRate + annualManagementCostsFull + annualMaintenanceCostsFull
   const netYieldBeforeDebt = ((annualBaseRent - yearOneOperatingCosts) / apartment.purchasePrice) * 100
   const afaPhaseOneMonthlyLiquidity =
     afaPhaseOneYears > 0 ? afaPhaseOneCashflow / (afaPhaseOneYears * 12) : 0
@@ -684,6 +846,192 @@ function renderWealthPath(values: number[]): void {
       `
     })
     .join('')
+}
+
+function renderLiquidityView(result: ProjectionResult): void {
+  const modeLabel = getLiquidityViewLabel(liquidityViewMode)
+  liquidityModeLabel.textContent = modeLabel
+  const previousView = getPreviousLiquidityView(liquidityViewMode)
+  const nextView = getNextLiquidityView(liquidityViewMode)
+  liquidityViewPrevButton.title = `Vorherige Ansicht: ${getLiquidityViewLabel(previousView)}`
+  liquidityViewNextButton.title = `Naechste Ansicht: ${getLiquidityViewLabel(nextView)}`
+  liquidityViewPrevButton.setAttribute(
+    'aria-label',
+    `Vorherige Ansicht: ${getLiquidityViewLabel(previousView)}`,
+  )
+  liquidityViewNextButton.setAttribute(
+    'aria-label',
+    `Naechste Ansicht: ${getLiquidityViewLabel(nextView)}`,
+  )
+
+  if (liquidityViewMode === 'table') {
+    liquidityViewContent.innerHTML = renderLiquidityTable(result)
+    return
+  }
+
+  const basis = liquidityViewMode === 'afterTaxChart' ? 'afterTax' : 'beforeTax'
+  liquidityViewContent.innerHTML = renderLiquidityChart(result, basis)
+}
+
+function renderLiquidityChart(
+  result: ProjectionResult,
+  basis: 'afterTax' | 'beforeTax',
+): string {
+  const chartRows = result.yearlyLiquidityRows.map((row) => ({
+    calendarYear: row.calendarYear,
+    monthlyValue:
+      basis === 'afterTax' ? row.cashflow / 12 : (row.cashflow - row.taxBenefit) / 12,
+  }))
+  const values = chartRows.map((row) => row.monthlyValue)
+  const maxAbs = Math.max(...values.map((value) => Math.abs(value)), 1)
+  const maxValue = Math.max(...values, 0)
+  const minValue = Math.min(...values, 0)
+  const modeLabel = basis === 'afterTax' ? 'Nach Steuern' : 'Vor Steuern'
+
+  return `
+    <button
+      class="liquidity-chart-card"
+      type="button"
+      data-liquidity-cycle="true"
+      aria-label="Liquiditaetsansicht weiterschalten"
+    >
+      <div class="liquidity-chart-meta">
+        <div>
+          <p class="liquidity-chart-title">${modeLabel}</p>
+          <p class="liquidity-chart-copy">Klick auf das Diagramm fuer die naechste Ansicht</p>
+        </div>
+        <p class="liquidity-chart-range">${formatSignedCurrency(minValue)} bis ${formatSignedCurrency(maxValue)} / Monat</p>
+      </div>
+      <div class="liquidity-chart" style="--year-count: ${values.length}">
+        <div class="liquidity-scale">
+          <span>${formatCurrency(maxAbs)}</span>
+          <span>0 €</span>
+          <span>-${formatCurrency(maxAbs).replace('-', '')}</span>
+        </div>
+        <div class="liquidity-chart-plot">
+          ${chartRows
+            .map((row) => {
+              const height = row.monthlyValue === 0 ? 0 : Math.max((Math.abs(row.monthlyValue) / maxAbs) * 46, 2)
+              const toneClass = row.monthlyValue >= 0 ? 'liquidity-bar-positive' : 'liquidity-bar-negative'
+              const yearLabel = String(row.calendarYear).slice(-2)
+              return `
+                <div class="liquidity-year" title="${row.calendarYear}: ${formatSignedCurrency(row.monthlyValue)} / Monat">
+                  <div class="liquidity-year-plot">
+                    <span class="liquidity-bar ${toneClass}" style="--bar-size: ${height.toFixed(2)}%"></span>
+                  </div>
+                  <span class="liquidity-year-label">${yearLabel}</span>
+                </div>
+              `
+            })
+            .join('')}
+        </div>
+      </div>
+    </button>
+  `
+}
+
+function renderLiquidityTable(result: ProjectionResult): string {
+  let cumulativeAfterTax = 0
+
+  const rows = result.yearlyLiquidityRows
+    .map((row) => {
+      const totalInterest = row.kfwInterest + row.bankInterest + row.refinanceInterest
+      const totalPrincipal = row.kfwPrincipal + row.bankPrincipal + row.refinancePrincipal
+      const totalAncillaryCost = row.vacancyCost + row.managementCost + row.maintenanceCost
+      const liquidityBeforeTax = row.cashflow - row.taxBenefit
+      const liquidityAfterTax = row.cashflow
+      cumulativeAfterTax += liquidityAfterTax
+
+      return `
+        <tr>
+          <td>${row.calendarYear}</td>
+          <td class="${getToneClass(row.grossRent)}">${formatSignedCurrency(row.grossRent)}</td>
+          <td class="${getToneClass(-totalInterest)}">${formatSignedCurrency(-totalInterest)}</td>
+          <td class="${getToneClass(-totalPrincipal)}">${formatSignedCurrency(-totalPrincipal)}</td>
+          <td class="${getToneClass(-totalAncillaryCost)}">${formatSignedCurrency(-totalAncillaryCost)}</td>
+          <td class="${getToneClass(row.taxBenefit)}">${formatSignedCurrency(row.taxBenefit)}</td>
+          <td class="${getToneClass(liquidityBeforeTax)}">${formatSignedCurrency(liquidityBeforeTax)}</td>
+          <td class="${getToneClass(liquidityAfterTax)}">${formatSignedCurrency(liquidityAfterTax)}</td>
+          <td class="${getToneClass(cumulativeAfterTax)}">${formatSignedCurrency(cumulativeAfterTax)}</td>
+        </tr>
+      `
+    })
+    .join('')
+
+  return `
+    <div class="liquidity-table-card">
+      <div class="liquidity-table-head">
+        <div>
+          <p class="liquidity-chart-title">Details je Jahr</p>
+          <p class="liquidity-chart-copy">Dieselben Jahreswerte, aus denen die Diagramme berechnet werden.</p>
+        </div>
+        <button
+          type="button"
+          class="liquidity-inline-toggle"
+          data-liquidity-cycle="true"
+          aria-label="Zur naechsten Liquiditaetsansicht wechseln"
+        >
+          Zur Grafik
+        </button>
+      </div>
+      <div class="liquidity-table-scroll">
+        <table class="liquidity-detail-table" aria-label="Jaehrliche Einnahmen Ausgaben Details">
+          <thead>
+            <tr>
+              <th>Jahr</th>
+              <th>Miete</th>
+              <th>Zins</th>
+              <th>Tilgung</th>
+              <th>Nebenkosten</th>
+              <th>Steuer</th>
+              <th>Liqui v. St.</th>
+              <th>Liqui n. St.</th>
+              <th>Kumuliert</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  `
+}
+
+function advanceLiquidityView(): void {
+  liquidityViewMode = getNextLiquidityView(liquidityViewMode)
+}
+
+function retreatLiquidityView(): void {
+  liquidityViewMode = getPreviousLiquidityView(liquidityViewMode)
+}
+
+function getNextLiquidityView(viewMode: LiquidityViewMode): LiquidityViewMode {
+  if (viewMode === 'afterTaxChart') {
+    return 'beforeTaxChart'
+  }
+  if (viewMode === 'beforeTaxChart') {
+    return 'table'
+  }
+  return 'afterTaxChart'
+}
+
+function getPreviousLiquidityView(viewMode: LiquidityViewMode): LiquidityViewMode {
+  if (viewMode === 'afterTaxChart') {
+    return 'table'
+  }
+  if (viewMode === 'beforeTaxChart') {
+    return 'afterTaxChart'
+  }
+  return 'beforeTaxChart'
+}
+
+function getLiquidityViewLabel(viewMode: LiquidityViewMode): string {
+  if (viewMode === 'afterTaxChart') {
+    return 'Nach Steuern'
+  }
+  if (viewMode === 'beforeTaxChart') {
+    return 'Vor Steuern'
+  }
+  return 'Details'
 }
 
 function syncUrlState(): void {
@@ -785,11 +1133,22 @@ function getApartment(apartmentId: ApartmentId): ApartmentOption {
   return apartment
 }
 
-function getAfaRateForYear(year: number): number {
+function getAfaFactorForProjectionYear(year: number): number {
+  const calendarYear = getCalendarYearForProjectionYear(year)
+  if (calendarYear < assumptions.afaStartYear) {
+    return 0
+  }
+
+  const relativeAfaYear = calendarYear - assumptions.afaStartYear + 1
   const match = assumptions.afaSchedule.find(
-    (entry) => year >= entry.startYear && year <= entry.endYear,
+    (entry) => relativeAfaYear >= entry.startYear && relativeAfaYear <= entry.endYear,
   )
-  return match ? match.rate : 0
+  if (!match) {
+    return 0
+  }
+
+  const startYearShare = calendarYear === assumptions.afaStartYear ? (5 - assumptions.afaStartQuarter) / 4 : 1
+  return match.rate * startYearShare
 }
 
 function getAfaPhaseOneEndYear(): number {
@@ -840,6 +1199,25 @@ function getDefaultEquityForApartment(apartmentId: ApartmentId): number {
   return clamp(ancillaryCosts, equityBounds.min, equityBounds.max)
 }
 
+function getCalendarYearForProjectionYear(year: number): number {
+  return assumptions.purchaseYear + year - 1
+}
+
+function getProjectionYearForAfaYear(afaYear: number): number {
+  return assumptions.afaStartYear - assumptions.purchaseYear + afaYear
+}
+
+function getRentShareForProjectionYear(year: number): number {
+  const calendarYear = getCalendarYearForProjectionYear(year)
+  if (calendarYear < assumptions.rentStartYear) {
+    return 0
+  }
+  if (calendarYear > assumptions.rentStartYear) {
+    return 1
+  }
+  return (5 - assumptions.rentStartQuarter) / 4
+}
+
 function downloadLiquidityPdf(result: ProjectionResult): void {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   let y = 40
@@ -869,7 +1247,7 @@ function downloadLiquidityPdf(result: ProjectionResult): void {
     }
 
     doc.setFontSize(11)
-    doc.text(`Jahr ${row.year}`, left, y)
+    doc.text(`Jahr ${row.calendarYear}`, left, y)
     y += lineHeight
 
     doc.setFontSize(9)
@@ -898,6 +1276,1091 @@ function downloadLiquidityPdf(result: ProjectionResult): void {
   }
 
   doc.save(`liquiditaetsrechnung-${result.apartment.id}.pdf`)
+}
+
+function buildConfigSections(): ConfigSection[] {
+  return [
+    {
+      title: 'Finanzierung',
+      copy: 'KfW, Bankdarlehen und Tilgungslogik.',
+      open: true,
+      fields: [
+        {
+          type: 'number',
+          id: 'config-kfw-loan-amount',
+          label: 'KfW-Darlehen',
+          hint: 'Foerderdarlehen fuer das Objekt.',
+          mode: 'currency',
+          min: 0,
+          step: 500,
+          get: (value) => value.assumptions.kfwLoanAmount,
+          set: (value, next) => {
+            value.assumptions.kfwLoanAmount = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-kfw-interest-rate',
+          label: 'KfW-Zins',
+          hint: 'Nominalzins fuer den KfW-Anteil.',
+          mode: 'percent',
+          min: 0,
+          max: 15,
+          step: 0.05,
+          get: (value) => value.assumptions.kfwInterestRate,
+          set: (value, next) => {
+            value.assumptions.kfwInterestRate = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-kfw-repayment-rate',
+          label: 'KfW-Tilgung',
+          hint: 'Regulaere Tilgung nach der Karenz.',
+          mode: 'percent',
+          min: 0,
+          max: 15,
+          step: 0.05,
+          get: (value) => value.assumptions.kfwRepaymentRate,
+          set: (value, next) => {
+            value.assumptions.kfwRepaymentRate = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-kfw-grace-years',
+          label: 'Karenzjahre',
+          hint: 'Jahre mit nur Zinszahlung im KfW-Teil.',
+          mode: 'number',
+          min: 0,
+          max: 10,
+          step: 1,
+          get: (value) => value.assumptions.kfwGraceYears,
+          set: (value, next) => {
+            value.assumptions.kfwGraceYears = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-kfw-grant-amount',
+          label: 'KfW-Zuschuss',
+          hint: 'Tilgungszuschuss aus dem Programm.',
+          mode: 'currency',
+          min: 0,
+          step: 500,
+          get: (value) => value.assumptions.kfwGrantAmount,
+          set: (value, next) => {
+            value.assumptions.kfwGrantAmount = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-bank-interest-rate',
+          label: 'Bankzins',
+          hint: 'Nominalzins fuer den Bankanteil.',
+          mode: 'percent',
+          min: 0,
+          max: 15,
+          step: 0.05,
+          get: (value) => value.assumptions.bankInterestRate,
+          set: (value, next) => {
+            value.assumptions.bankInterestRate = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-bank-repayment-rate',
+          label: 'Banktilgung',
+          hint: 'Jaehrliche Tilgung fuer das Bankdarlehen.',
+          mode: 'percent',
+          min: 0,
+          max: 15,
+          step: 0.05,
+          get: (value) => value.assumptions.bankRepaymentRate,
+          set: (value, next) => {
+            value.assumptions.bankRepaymentRate = next
+          },
+        },
+      ],
+    },
+    {
+      title: 'Markt & Entwicklung',
+      copy: 'Mietniveau, Wachstum und laufende Kosten.',
+      open: true,
+      fields: [
+        {
+          type: 'number',
+          id: 'config-rent-per-sqm',
+          label: 'Miete pro m2',
+          hint: 'Monatliche Nettokaltmiete je Quadratmeter.',
+          mode: 'currency',
+          min: 0,
+          max: 100,
+          step: 0.05,
+          get: (value) => value.assumptions.rentPerSqm,
+          set: (value, next) => {
+            value.assumptions.rentPerSqm = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-annual-growth-rate',
+          label: 'Wertentwicklung',
+          hint: 'Gemeinsame Entwicklung von Miete und Objektwert pro Jahr.',
+          mode: 'percent',
+          min: -10,
+          max: 15,
+          step: 0.1,
+          get: (value) => value.assumptions.annualGrowthRate,
+          set: (value, next) => {
+            value.assumptions.annualGrowthRate = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-purchase-year',
+          label: 'Kaufjahr',
+          hint: 'Startjahr der Rechnung und des Investments.',
+          mode: 'number',
+          min: 2020,
+          max: 2040,
+          step: 1,
+          get: (value) => value.assumptions.purchaseYear,
+          set: (value, next) => {
+            value.assumptions.purchaseYear = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-rent-start-year',
+          label: 'Mietstart Jahr',
+          hint: 'Erstes Kalenderjahr mit Vermietung.',
+          mode: 'number',
+          min: 2020,
+          max: 2045,
+          step: 1,
+          get: (value) => value.assumptions.rentStartYear,
+          set: (value, next) => {
+            value.assumptions.rentStartYear = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-rent-start-quarter',
+          label: 'Mietstart Quartal',
+          hint: 'Quartal des Vermietungsstarts innerhalb des Startjahres.',
+          mode: 'number',
+          min: 1,
+          max: 4,
+          step: 1,
+          get: (value) => value.assumptions.rentStartQuarter,
+          set: (value, next) => {
+            value.assumptions.rentStartQuarter = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-monument-share',
+          label: 'Denkmalanteil',
+          hint: 'Abschreibungsfaehiger Anteil am Kaufpreis.',
+          mode: 'percent',
+          min: 0,
+          max: 100,
+          step: 1,
+          get: (value) => value.assumptions.monumentShare,
+          set: (value, next) => {
+            value.assumptions.monumentShare = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-ancillary-cost-rate',
+          label: 'Nebenkostenquote',
+          hint: 'Zusatzkosten auf den Kaufpreis.',
+          mode: 'percent',
+          min: 0,
+          max: 25,
+          step: 0.1,
+          get: (value) => value.assumptions.ancillaryCostRate,
+          set: (value, next) => {
+            value.assumptions.ancillaryCostRate = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-vacancy-rate',
+          label: 'Leerstandsquote',
+          hint: 'Sicherheitsabschlag fuer entgangene Miete.',
+          mode: 'percent',
+          min: 0,
+          max: 20,
+          step: 0.1,
+          get: (value) => value.assumptions.vacancyRate,
+          set: (value, next) => {
+            value.assumptions.vacancyRate = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-monthly-management-flat',
+          label: 'Verwaltung pauschal',
+          hint: 'Projektweiter Monatswert in EUR.',
+          mode: 'currency',
+          min: 0,
+          step: 5,
+          get: (value) => value.assumptions.monthlyManagementFlat,
+          set: (value, next) => {
+            value.assumptions.monthlyManagementFlat = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-monthly-maintenance-flat',
+          label: 'Ruecklage pauschal',
+          hint: 'Projektweiter Monatswert in EUR.',
+          mode: 'currency',
+          min: 0,
+          step: 5,
+          get: (value) => value.assumptions.monthlyMaintenanceFlat,
+          set: (value, next) => {
+            value.assumptions.monthlyMaintenanceFlat = next
+          },
+        },
+      ],
+    },
+    {
+      title: 'Wohnung A',
+      copy: '1-Zimmer-Apartment aus der Broschuere.',
+      open: false,
+      fields: [
+        {
+          type: 'number',
+          id: 'config-apartment-a-size',
+          label: 'Groesse',
+          hint: 'Wohnflaeche in m2.',
+          mode: 'number',
+          min: 10,
+          max: 120,
+          step: 1,
+          get: (value) => getConfigApartment(value, 'a').size,
+          set: (value, next) => {
+            getConfigApartment(value, 'a').size = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-apartment-a-purchase-price',
+          label: 'Kaufpreis',
+          hint: 'Investitionssumme vor Nebenkosten.',
+          mode: 'currency',
+          min: 0,
+          step: 1000,
+          get: (value) => getConfigApartment(value, 'a').purchasePrice,
+          set: (value, next) => {
+            getConfigApartment(value, 'a').purchasePrice = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-apartment-a-management',
+          label: 'Verwaltung',
+          hint: 'Wohnungsspezifische Kosten pro Monat.',
+          mode: 'currency',
+          min: 0,
+          step: 5,
+          get: (value) => getConfigApartment(value, 'a').monthlyManagement,
+          set: (value, next) => {
+            getConfigApartment(value, 'a').monthlyManagement = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-apartment-a-maintenance',
+          label: 'Ruecklage',
+          hint: 'Wohnungsspezifische Instandhaltung pro Monat.',
+          mode: 'currency',
+          min: 0,
+          step: 5,
+          get: (value) => getConfigApartment(value, 'a').monthlyMaintenance,
+          set: (value, next) => {
+            getConfigApartment(value, 'a').monthlyMaintenance = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-apartment-a-other-cost',
+          label: 'Weitere Kosten',
+          hint: 'Sonstige Monatskosten fuer Wohnung A.',
+          mode: 'currency',
+          min: 0,
+          step: 5,
+          get: (value) => getConfigApartment(value, 'a').monthlyOtherCost,
+          set: (value, next) => {
+            getConfigApartment(value, 'a').monthlyOtherCost = next
+          },
+        },
+      ],
+    },
+    {
+      title: 'Wohnung B',
+      copy: '2-Zimmer-Apartment aus der Broschuere.',
+      open: false,
+      fields: [
+        {
+          type: 'number',
+          id: 'config-apartment-b-size',
+          label: 'Groesse',
+          hint: 'Wohnflaeche in m2.',
+          mode: 'number',
+          min: 10,
+          max: 120,
+          step: 1,
+          get: (value) => getConfigApartment(value, 'b').size,
+          set: (value, next) => {
+            getConfigApartment(value, 'b').size = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-apartment-b-purchase-price',
+          label: 'Kaufpreis',
+          hint: 'Investitionssumme vor Nebenkosten.',
+          mode: 'currency',
+          min: 0,
+          step: 1000,
+          get: (value) => getConfigApartment(value, 'b').purchasePrice,
+          set: (value, next) => {
+            getConfigApartment(value, 'b').purchasePrice = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-apartment-b-management',
+          label: 'Verwaltung',
+          hint: 'Wohnungsspezifische Kosten pro Monat.',
+          mode: 'currency',
+          min: 0,
+          step: 5,
+          get: (value) => getConfigApartment(value, 'b').monthlyManagement,
+          set: (value, next) => {
+            getConfigApartment(value, 'b').monthlyManagement = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-apartment-b-maintenance',
+          label: 'Ruecklage',
+          hint: 'Wohnungsspezifische Instandhaltung pro Monat.',
+          mode: 'currency',
+          min: 0,
+          step: 5,
+          get: (value) => getConfigApartment(value, 'b').monthlyMaintenance,
+          set: (value, next) => {
+            getConfigApartment(value, 'b').monthlyMaintenance = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-apartment-b-other-cost',
+          label: 'Weitere Kosten',
+          hint: 'Sonstige Monatskosten fuer Wohnung B.',
+          mode: 'currency',
+          min: 0,
+          step: 5,
+          get: (value) => getConfigApartment(value, 'b').monthlyOtherCost,
+          set: (value, next) => {
+            getConfigApartment(value, 'b').monthlyOtherCost = next
+          },
+        },
+      ],
+    },
+    {
+      title: 'AfA & Steuer',
+      copy: 'Abschreibung und Grenzsteuersaetze fuer die Liquiditaet.',
+      open: false,
+      fields: [
+        {
+          type: 'number',
+          id: 'config-projection-years',
+          label: 'Projektionsjahre',
+          hint: 'Laufzeit der Vermoegensprojektion.',
+          mode: 'number',
+          min: 1,
+          max: 40,
+          step: 1,
+          get: (value) => value.assumptions.years,
+          set: (value, next) => {
+            value.assumptions.years = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-afa-start-year',
+          label: 'AfA Start Jahr',
+          hint: 'Jahr des Abschlusses der beguenstigten Baumaßnahme.',
+          mode: 'number',
+          min: 2020,
+          max: 2045,
+          step: 1,
+          get: (value) => value.assumptions.afaStartYear,
+          set: (value, next) => {
+            value.assumptions.afaStartYear = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-afa-start-quarter',
+          label: 'AfA Start Quartal',
+          hint: 'Quartal, ab dem die Denkmal-AfA erstmals anlaeuft.',
+          mode: 'number',
+          min: 1,
+          max: 4,
+          step: 1,
+          get: (value) => value.assumptions.afaStartQuarter,
+          set: (value, next) => {
+            value.assumptions.afaStartQuarter = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-afa-rate-1',
+          label: 'AfA Satz Phase 1',
+          hint: 'Abschreibung in den ersten Jahren.',
+          mode: 'percent',
+          min: 0,
+          max: 20,
+          step: 0.1,
+          get: (value) => getConfigAfaEntry(value, 0).rate,
+          set: (value, next) => {
+            const entry = getConfigAfaEntry(value, 0)
+            value.assumptions.afaSchedule[0] = { ...entry, rate: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-afa-end-year-1',
+          label: 'AfA Ende Phase 1',
+          hint: 'Letztes Jahr der ersten Abschreibungsphase.',
+          mode: 'number',
+          min: 1,
+          max: 30,
+          step: 1,
+          get: (value) => getConfigAfaEntry(value, 0).endYear,
+          set: (value, next) => {
+            const entry = getConfigAfaEntry(value, 0)
+            value.assumptions.afaSchedule[0] = { ...entry, endYear: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-afa-rate-2',
+          label: 'AfA Satz Phase 2',
+          hint: 'Abschreibung in der zweiten Phase.',
+          mode: 'percent',
+          min: 0,
+          max: 20,
+          step: 0.1,
+          get: (value) => getConfigAfaEntry(value, 1).rate,
+          set: (value, next) => {
+            const entry = getConfigAfaEntry(value, 1)
+            value.assumptions.afaSchedule[1] = { ...entry, rate: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-afa-end-year-2',
+          label: 'AfA Ende Phase 2',
+          hint: 'Letztes Jahr der zweiten Abschreibungsphase.',
+          mode: 'number',
+          min: 1,
+          max: 40,
+          step: 1,
+          get: (value) => getConfigAfaEntry(value, 1).endYear,
+          set: (value, next) => {
+            const entry = getConfigAfaEntry(value, 1)
+            value.assumptions.afaSchedule[1] = { ...entry, endYear: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-tax-limit-1',
+          label: 'Steuergrenze 1',
+          hint: 'Monatliches Brutto fuer Satz 1.',
+          mode: 'currency',
+          min: 0,
+          step: 50,
+          get: (value) => getConfigTaxBracket(value, 0).maxMonthlyIncome,
+          set: (value, next) => {
+            value.taxBrackets[0] = { ...getConfigTaxBracket(value, 0), maxMonthlyIncome: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-tax-rate-1',
+          label: 'Steuersatz 1',
+          hint: 'Grenzsteuersatz fuer die erste Stufe.',
+          mode: 'percent',
+          min: 0,
+          max: 60,
+          step: 0.1,
+          get: (value) => getConfigTaxBracket(value, 0).rate,
+          set: (value, next) => {
+            value.taxBrackets[0] = { ...getConfigTaxBracket(value, 0), rate: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-tax-limit-2',
+          label: 'Steuergrenze 2',
+          hint: 'Monatliches Brutto fuer Satz 2.',
+          mode: 'currency',
+          min: 0,
+          step: 50,
+          get: (value) => getConfigTaxBracket(value, 1).maxMonthlyIncome,
+          set: (value, next) => {
+            value.taxBrackets[1] = { ...getConfigTaxBracket(value, 1), maxMonthlyIncome: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-tax-rate-2',
+          label: 'Steuersatz 2',
+          hint: 'Grenzsteuersatz fuer die zweite Stufe.',
+          mode: 'percent',
+          min: 0,
+          max: 60,
+          step: 0.1,
+          get: (value) => getConfigTaxBracket(value, 1).rate,
+          set: (value, next) => {
+            value.taxBrackets[1] = { ...getConfigTaxBracket(value, 1), rate: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-tax-limit-3',
+          label: 'Steuergrenze 3',
+          hint: 'Monatliches Brutto fuer Satz 3.',
+          mode: 'currency',
+          min: 0,
+          step: 50,
+          get: (value) => getConfigTaxBracket(value, 2).maxMonthlyIncome,
+          set: (value, next) => {
+            value.taxBrackets[2] = { ...getConfigTaxBracket(value, 2), maxMonthlyIncome: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-tax-rate-3',
+          label: 'Steuersatz 3',
+          hint: 'Grenzsteuersatz fuer die dritte Stufe.',
+          mode: 'percent',
+          min: 0,
+          max: 60,
+          step: 0.1,
+          get: (value) => getConfigTaxBracket(value, 2).rate,
+          set: (value, next) => {
+            value.taxBrackets[2] = { ...getConfigTaxBracket(value, 2), rate: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-tax-limit-4',
+          label: 'Steuergrenze 4',
+          hint: 'Monatliches Brutto fuer Satz 4.',
+          mode: 'currency',
+          min: 0,
+          step: 50,
+          get: (value) => getConfigTaxBracket(value, 3).maxMonthlyIncome,
+          set: (value, next) => {
+            value.taxBrackets[3] = { ...getConfigTaxBracket(value, 3), maxMonthlyIncome: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-tax-rate-4',
+          label: 'Steuersatz 4',
+          hint: 'Grenzsteuersatz fuer die vierte Stufe.',
+          mode: 'percent',
+          min: 0,
+          max: 60,
+          step: 0.1,
+          get: (value) => getConfigTaxBracket(value, 3).rate,
+          set: (value, next) => {
+            value.taxBrackets[3] = { ...getConfigTaxBracket(value, 3), rate: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-tax-limit-5',
+          label: 'Steuergrenze 5',
+          hint: 'Monatliches Brutto fuer Satz 5.',
+          mode: 'currency',
+          min: 0,
+          step: 50,
+          get: (value) => getConfigTaxBracket(value, 4).maxMonthlyIncome,
+          set: (value, next) => {
+            value.taxBrackets[4] = { ...getConfigTaxBracket(value, 4), maxMonthlyIncome: next }
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-tax-rate-5',
+          label: 'Steuersatz 5',
+          hint: 'Grenzsteuersatz fuer die letzte Stufe.',
+          mode: 'percent',
+          min: 0,
+          max: 60,
+          step: 0.1,
+          get: (value) => getConfigTaxBracket(value, 4).rate,
+          set: (value, next) => {
+            value.taxBrackets[4] = { ...getConfigTaxBracket(value, 4), rate: next }
+          },
+        },
+      ],
+    },
+    {
+      title: 'Standards & Grenzen',
+      copy: 'Vorgaben fuer den Rechner und die UI-Schieberegler.',
+      open: false,
+      fields: [
+        {
+          type: 'select',
+          id: 'config-default-apartment',
+          label: 'Startwohnung',
+          hint: 'Welche Wohnung zuerst ausgewaehlt sein soll.',
+          options: (value) =>
+            value.apartments.map((entry) => ({
+              value: entry.id,
+              label: entry.label,
+            })),
+          get: (value) => value.defaultApartmentId,
+          set: (value, next) => {
+            if (!isApartmentId(next)) {
+              throw new Error('Startwohnung ist ungueltig.')
+            }
+            value.defaultApartmentId = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-default-income',
+          label: 'Standard-Einkommen',
+          hint: 'Ausgangswert beim ersten Laden der Seite.',
+          mode: 'currency',
+          min: 0,
+          step: 1000,
+          get: (value) => value.defaultAnnualGrossIncome,
+          set: (value, next) => {
+            value.defaultAnnualGrossIncome = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-income-min',
+          label: 'Einkommen Minimum',
+          hint: 'Untergrenze fuer das Eingabefeld.',
+          mode: 'currency',
+          min: 0,
+          step: 100,
+          get: (value) => value.incomeBounds.min,
+          set: (value, next) => {
+            value.incomeBounds.min = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-income-max',
+          label: 'Einkommen Maximum',
+          hint: 'Obergrenze fuer das Eingabefeld.',
+          mode: 'currency',
+          min: 1000,
+          step: 100,
+          get: (value) => value.incomeBounds.max,
+          set: (value, next) => {
+            value.incomeBounds.max = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-income-step',
+          label: 'Einkommen Schritt',
+          hint: 'Schrittweite im Eingabefeld.',
+          mode: 'currency',
+          min: 1,
+          step: 1,
+          get: (value) => value.incomeBounds.step,
+          set: (value, next) => {
+            value.incomeBounds.step = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-income-months-factor',
+          label: 'EK-Monatsfaktor',
+          hint: 'Ableitung des Standard-Eigenkapitals aus dem Einkommen.',
+          mode: 'number',
+          min: 0,
+          max: 24,
+          step: 0.5,
+          get: (value) => value.equityModel.incomeMonthsFactor,
+          set: (value, next) => {
+            value.equityModel.incomeMonthsFactor = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-min-equity',
+          label: 'Mindest-Eigenkapital',
+          hint: 'Untergrenze fuer das Eigenkapital im Rechner.',
+          mode: 'currency',
+          min: 0,
+          step: 500,
+          get: (value) => value.equityModel.minEquity,
+          set: (value, next) => {
+            value.equityModel.minEquity = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-max-investment-ratio',
+          label: 'Max. Investitionsquote',
+          hint: 'Deckel fuer das eingesetzte Eigenkapital relativ zum Investment.',
+          mode: 'percent',
+          min: 0,
+          max: 100,
+          step: 1,
+          get: (value) => value.equityModel.maxTotalInvestmentRatio,
+          set: (value, next) => {
+            value.equityModel.maxTotalInvestmentRatio = next
+          },
+        },
+      ],
+    },
+  ]
+}
+
+function renderConfigSections(sections: ConfigSection[], sourceConfig: CalculationConfig): string {
+  return sections
+    .map((section) => {
+      const openAttribute = section.open ? ' open' : ''
+      return `
+        <details class="config-group"${openAttribute}>
+          <summary class="config-group-toggle">
+            <span>${section.title}</span>
+            <small>${section.copy}</small>
+          </summary>
+          <div class="config-grid">
+            ${section.fields.map((field) => renderConfigField(field, sourceConfig)).join('')}
+          </div>
+        </details>
+      `
+    })
+    .join('')
+}
+
+function renderConfigField(field: ConfigField, sourceConfig: CalculationConfig): string {
+  if (field.type === 'select') {
+    return `
+      <label class="config-field" for="${field.id}">
+        <span class="config-field-label">${field.label}</span>
+        <span class="config-field-hint">${field.hint}</span>
+        <span class="config-input-wrap">
+          <select id="${field.id}" class="config-select">
+            ${field.options(sourceConfig)
+              .map((option) => {
+                const selected = option.value === field.get(sourceConfig) ? ' selected' : ''
+                return `<option value="${option.value}"${selected}>${option.label}</option>`
+              })
+              .join('')}
+          </select>
+        </span>
+      </label>
+    `
+  }
+
+  const minAttribute = field.min !== undefined ? ` min="${field.min}"` : ''
+  const maxAttribute = field.max !== undefined ? ` max="${field.max}"` : ''
+  return `
+    <label class="config-field" for="${field.id}">
+      <span class="config-field-label">${field.label}</span>
+      <span class="config-field-hint">${field.hint}</span>
+      <span class="config-input-wrap">
+        <input
+          id="${field.id}"
+          class="config-input"
+          type="number"
+          step="${field.step}"
+          inputmode="decimal"
+          value="${formatConfigInputValue(field.get(sourceConfig), field.mode)}"${minAttribute}${maxAttribute}
+        />
+        <span class="config-input-unit">${getConfigFieldUnit(field.mode)}</span>
+      </span>
+    </label>
+  `
+}
+
+function buildConfigFromForm(form: HTMLFormElement): CalculationConfig {
+  const nextConfig = deepCloneConfig(config)
+  for (const section of configSections) {
+    for (const field of section.fields) {
+      if (field.type === 'select') {
+        const input = getFormElement<HTMLSelectElement>(form, field.id)
+        field.set(nextConfig, input.value)
+        continue
+      }
+
+      const rawValue = readNumberInput(form, field.id)
+      const normalizedValue = field.mode === 'percent' ? rawValue / 100 : rawValue
+      field.set(nextConfig, normalizedValue)
+    }
+  }
+
+  normalizeDerivedConfigValues(nextConfig)
+  return validateConfig(nextConfig)
+}
+
+function normalizeDerivedConfigValues(nextConfig: CalculationConfig): void {
+  const apartmentA = getConfigApartment(nextConfig, 'a')
+  const apartmentB = getConfigApartment(nextConfig, 'b')
+  apartmentA.subtitle = buildApartmentSubtitle('a', apartmentA.size)
+  apartmentB.subtitle = buildApartmentSubtitle('b', apartmentB.size)
+
+  const incomeMax = Math.max(nextConfig.incomeBounds.min, nextConfig.incomeBounds.max)
+  nextConfig.incomeBounds.max = incomeMax
+  nextConfig.incomeBounds.min = Math.min(nextConfig.incomeBounds.min, incomeMax)
+  nextConfig.incomeBounds.step = Math.max(1, nextConfig.incomeBounds.step)
+  nextConfig.assumptions.purchaseYear = Math.round(nextConfig.assumptions.purchaseYear)
+  nextConfig.assumptions.rentStartYear = Math.max(
+    nextConfig.assumptions.purchaseYear,
+    Math.round(nextConfig.assumptions.rentStartYear),
+  )
+  nextConfig.assumptions.rentStartQuarter = clamp(
+    Math.round(nextConfig.assumptions.rentStartQuarter),
+    1,
+    4,
+  )
+  nextConfig.assumptions.afaStartYear = Math.max(
+    nextConfig.assumptions.purchaseYear,
+    Math.round(nextConfig.assumptions.afaStartYear),
+  )
+  nextConfig.assumptions.afaStartQuarter = clamp(
+    Math.round(nextConfig.assumptions.afaStartQuarter),
+    1,
+    4,
+  )
+
+  const afaEntryOne = getConfigAfaEntry(nextConfig, 0)
+  const afaEntryTwo = getConfigAfaEntry(nextConfig, 1)
+  nextConfig.assumptions.afaSchedule[0] = {
+    ...afaEntryOne,
+    startYear: 1,
+    endYear: Math.max(1, Math.round(afaEntryOne.endYear)),
+  }
+  nextConfig.assumptions.afaSchedule[1] = {
+    ...afaEntryTwo,
+    startYear: nextConfig.assumptions.afaSchedule[0].endYear + 1,
+    endYear: Math.max(nextConfig.assumptions.afaSchedule[0].endYear + 1, Math.round(afaEntryTwo.endYear)),
+  }
+
+  nextConfig.taxBrackets = nextConfig.taxBrackets
+    .map((entry) => ({
+      maxMonthlyIncome: Math.max(0, entry.maxMonthlyIncome),
+      rate: Math.max(0, entry.rate),
+    }))
+    .sort((left, right) => left.maxMonthlyIncome - right.maxMonthlyIncome)
+}
+
+function serializeConfig(value: CalculationConfig): string {
+  return JSON.stringify(value, null, 2)
+}
+
+function loadStoredConfig(fallback: CalculationConfig): CalculationConfig {
+  try {
+    const rawValue = window.localStorage.getItem(CONFIG_STORAGE_KEY)
+    if (!rawValue) {
+      return deepCloneConfig(fallback)
+    }
+    return validateConfig(JSON.parse(rawValue) as unknown)
+  } catch {
+    window.localStorage.removeItem(CONFIG_STORAGE_KEY)
+    return deepCloneConfig(fallback)
+  }
+}
+
+function saveStoredConfig(value: CalculationConfig): void {
+  window.localStorage.setItem(CONFIG_STORAGE_KEY, serializeConfig(value))
+}
+
+function clearStoredConfig(): void {
+  window.localStorage.removeItem(CONFIG_STORAGE_KEY)
+}
+
+function hasStoredConfig(): boolean {
+  return window.localStorage.getItem(CONFIG_STORAGE_KEY) !== null
+}
+
+function validateConfig(candidate: unknown): CalculationConfig {
+  if (!isRecord(candidate)) {
+    throw new Error('Root muss ein JSON-Objekt sein.')
+  }
+
+  const defaultApartmentIdValue = String(candidate.defaultApartmentId)
+  const defaultAnnualGrossIncome = candidate.defaultAnnualGrossIncome
+  const incomeBounds = candidate.incomeBounds
+  const equityModel = candidate.equityModel
+  const assumptionsCandidate = candidate.assumptions
+  const apartmentsCandidate = candidate.apartments
+  const taxBracketsCandidate = candidate.taxBrackets
+
+  if (!isApartmentId(defaultApartmentIdValue)) {
+    throw new Error('defaultApartmentId muss "a" oder "b" sein.')
+  }
+  const defaultApartmentId: ApartmentId = defaultApartmentIdValue
+
+  if (typeof defaultAnnualGrossIncome !== 'number') {
+    throw new Error('defaultAnnualGrossIncome muss eine Zahl sein.')
+  }
+
+  if (!isRecord(incomeBounds)) {
+    throw new Error('incomeBounds fehlt oder ist ungueltig.')
+  }
+
+  if (!isRecord(equityModel)) {
+    throw new Error('equityModel fehlt oder ist ungueltig.')
+  }
+
+  if (!isRecord(assumptionsCandidate)) {
+    throw new Error('assumptions fehlt oder ist ungueltig.')
+  }
+
+  if (!Array.isArray(apartmentsCandidate) || apartmentsCandidate.length === 0) {
+    throw new Error('apartments muss ein nicht-leeres Array sein.')
+  }
+
+  if (!Array.isArray(taxBracketsCandidate)) {
+    throw new Error('taxBrackets muss ein Array sein.')
+  }
+
+  const apartments = apartmentsCandidate.map((entry) => {
+    if (!isRecord(entry)) {
+      throw new Error('Jedes apartment muss ein Objekt sein.')
+    }
+
+    const apartmentIdValue = String(entry.id)
+    if (!isApartmentId(apartmentIdValue)) {
+      throw new Error('Jedes apartment braucht eine gueltige id ("a" oder "b").')
+    }
+    const apartmentId: ApartmentId = apartmentIdValue
+
+    return {
+      id: apartmentId,
+      label: asString(entry.label, 'apartment.label'),
+      subtitle: asString(entry.subtitle, 'apartment.subtitle'),
+      size: asNumber(entry.size, 'apartment.size'),
+      purchasePrice: asNumber(entry.purchasePrice, 'apartment.purchasePrice'),
+      image: asString(entry.image, 'apartment.image'),
+      monthlyManagement: asNumber(entry.monthlyManagement, 'apartment.monthlyManagement'),
+      monthlyMaintenance: asNumber(entry.monthlyMaintenance, 'apartment.monthlyMaintenance'),
+      monthlyOtherCost: asNumber(entry.monthlyOtherCost, 'apartment.monthlyOtherCost'),
+    } satisfies ApartmentOption
+  })
+
+  if (!apartments.some((entry) => entry.id === defaultApartmentId)) {
+    throw new Error('defaultApartmentId muss in apartments enthalten sein.')
+  }
+
+  const assumptions = {
+    rentPerSqm: asNumber(assumptionsCandidate.rentPerSqm, 'assumptions.rentPerSqm'),
+    ancillaryCostRate: asNumber(assumptionsCandidate.ancillaryCostRate, 'assumptions.ancillaryCostRate'),
+    vacancyRate: asNumber(assumptionsCandidate.vacancyRate, 'assumptions.vacancyRate'),
+    monthlyManagementFlat: asNumber(
+      assumptionsCandidate.monthlyManagementFlat,
+      'assumptions.monthlyManagementFlat',
+    ),
+    monthlyMaintenanceFlat: asNumber(
+      assumptionsCandidate.monthlyMaintenanceFlat,
+      'assumptions.monthlyMaintenanceFlat',
+    ),
+    purchaseYear: asNumber(assumptionsCandidate.purchaseYear, 'assumptions.purchaseYear'),
+    rentStartYear: asNumber(assumptionsCandidate.rentStartYear, 'assumptions.rentStartYear'),
+    rentStartQuarter: asNumber(
+      assumptionsCandidate.rentStartQuarter,
+      'assumptions.rentStartQuarter',
+    ),
+    afaStartYear: asNumber(assumptionsCandidate.afaStartYear, 'assumptions.afaStartYear'),
+    afaStartQuarter: asNumber(
+      assumptionsCandidate.afaStartQuarter,
+      'assumptions.afaStartQuarter',
+    ),
+    kfwLoanAmount: asNumber(assumptionsCandidate.kfwLoanAmount, 'assumptions.kfwLoanAmount'),
+    kfwInterestRate: asNumber(assumptionsCandidate.kfwInterestRate, 'assumptions.kfwInterestRate'),
+    kfwRepaymentRate: asNumber(
+      assumptionsCandidate.kfwRepaymentRate,
+      'assumptions.kfwRepaymentRate',
+    ),
+    kfwGraceYears: asNumber(assumptionsCandidate.kfwGraceYears, 'assumptions.kfwGraceYears'),
+    kfwGrantAmount: asNumber(assumptionsCandidate.kfwGrantAmount, 'assumptions.kfwGrantAmount'),
+    bankInterestRate: asNumber(assumptionsCandidate.bankInterestRate, 'assumptions.bankInterestRate'),
+    bankRepaymentRate: asNumber(
+      assumptionsCandidate.bankRepaymentRate,
+      'assumptions.bankRepaymentRate',
+    ),
+    monumentShare: asNumber(assumptionsCandidate.monumentShare, 'assumptions.monumentShare'),
+    annualGrowthRate: asNumber(
+      assumptionsCandidate.annualGrowthRate,
+      'assumptions.annualGrowthRate',
+    ),
+    years: asNumber(assumptionsCandidate.years, 'assumptions.years'),
+    afaSchedule: Array.isArray(assumptionsCandidate.afaSchedule)
+      ? assumptionsCandidate.afaSchedule.map((entry, index) => {
+          if (!isRecord(entry)) {
+            throw new Error(`assumptions.afaSchedule[${index}] ist ungueltig.`)
+          }
+          return {
+            startYear: asNumber(entry.startYear, `assumptions.afaSchedule[${index}].startYear`),
+            endYear: asNumber(entry.endYear, `assumptions.afaSchedule[${index}].endYear`),
+            rate: asNumber(entry.rate, `assumptions.afaSchedule[${index}].rate`),
+          } satisfies AfaScheduleEntry
+        })
+      : (() => {
+          throw new Error('assumptions.afaSchedule muss ein Array sein.')
+        })(),
+  } satisfies Assumptions
+
+  const taxBrackets = taxBracketsCandidate.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new Error(`taxBrackets[${index}] ist ungueltig.`)
+    }
+    return {
+      maxMonthlyIncome: asNumber(entry.maxMonthlyIncome, `taxBrackets[${index}].maxMonthlyIncome`),
+      rate: asNumber(entry.rate, `taxBrackets[${index}].rate`),
+    } satisfies TaxBracket
+  })
+
+  return {
+    defaultApartmentId,
+    defaultAnnualGrossIncome,
+    incomeBounds: {
+      min: asNumber(incomeBounds.min, 'incomeBounds.min'),
+      max: asNumber(incomeBounds.max, 'incomeBounds.max'),
+      step: asNumber(incomeBounds.step, 'incomeBounds.step'),
+    },
+    equityModel: {
+      incomeMonthsFactor: asNumber(equityModel.incomeMonthsFactor, 'equityModel.incomeMonthsFactor'),
+      minEquity: asNumber(equityModel.minEquity, 'equityModel.minEquity'),
+      maxTotalInvestmentRatio: asNumber(
+        equityModel.maxTotalInvestmentRatio,
+        'equityModel.maxTotalInvestmentRatio',
+      ),
+    },
+    assumptions,
+    taxBrackets,
+    apartments,
+  }
+}
+
+function deepCloneConfig<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
 }
 
 function parseNumber(rawValue: string, fallback: number): number {
@@ -933,6 +2396,113 @@ function formatSignedPercent(value: number): string {
 
 function formatPercent(value: number): string {
   return percent.format(value)
+}
+
+function getToneClass(value: number): string {
+  if (value > 0) {
+    return 'tone-positive'
+  }
+  if (value < 0) {
+    return 'tone-negative'
+  }
+  return ''
+}
+
+function formatConfigInputValue(value: number, mode: ConfigNumberField['mode']): string {
+  const normalizedValue = mode === 'percent' ? value * 100 : value
+  return String(Number(normalizedValue.toFixed(4)))
+}
+
+function getConfigFieldUnit(mode: ConfigNumberField['mode']): string {
+  if (mode === 'percent') {
+    return '%'
+  }
+  if (mode === 'currency') {
+    return 'EUR'
+  }
+  return ''
+}
+
+function readNumberInput(form: HTMLFormElement, id: string): number {
+  const input = getFormElement<HTMLInputElement>(form, id)
+  return parseRequiredNumber(input.value, id)
+}
+
+function parseRequiredNumber(rawValue: string, id: string): number {
+  const normalized = rawValue.replace(',', '.').trim()
+  if (!normalized.length) {
+    throw new Error(`"${id}" darf nicht leer sein.`)
+  }
+  const parsed = Number.parseFloat(normalized)
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`"${id}" ist keine gueltige Zahl.`)
+  }
+  return parsed
+}
+
+function getFormElement<T extends HTMLElement>(form: HTMLFormElement, id: string): T {
+  const element = form.querySelector<T>(`#${id}`)
+  if (!element) {
+    throw new Error(`Feld "${id}" wurde nicht gefunden.`)
+  }
+  return element
+}
+
+function getConfigApartment(sourceConfig: CalculationConfig, apartmentId: ApartmentId): ApartmentOption {
+  const apartment = sourceConfig.apartments.find((entry) => entry.id === apartmentId)
+  if (!apartment) {
+    throw new Error(`Konfigurationsdaten fuer Wohnung "${apartmentId}" fehlen.`)
+  }
+  return apartment
+}
+
+function getConfigAfaEntry(sourceConfig: CalculationConfig, index: number): AfaScheduleEntry {
+  return (
+    sourceConfig.assumptions.afaSchedule[index] ??
+    defaultConfig.assumptions.afaSchedule[index] ?? {
+      startYear: index === 0 ? 1 : getConfigAfaEntry(sourceConfig, index - 1).endYear + 1,
+      endYear: index === 0 ? 8 : 12,
+      rate: 0,
+    }
+  )
+}
+
+function getConfigTaxBracket(sourceConfig: CalculationConfig, index: number): TaxBracket {
+  return (
+    sourceConfig.taxBrackets[index] ??
+    defaultConfig.taxBrackets[index] ?? {
+      maxMonthlyIncome: 999999,
+      rate: 0,
+    }
+  )
+}
+
+function buildApartmentSubtitle(apartmentId: ApartmentId, size: number): string {
+  const rooms = apartmentId === 'a' ? '1-Zimmer' : '2-Zimmer'
+  return `${rooms}, ca. ${Math.round(size)} m2`
+}
+
+function setConfigStatus(message: string, isError = false): void {
+  configStatus.textContent = message
+  configStatus.classList.toggle('config-status-error', isError)
+}
+
+function asNumber(value: unknown, path: string): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    throw new Error(`${path} muss eine Zahl sein.`)
+  }
+  return value
+}
+
+function asString(value: unknown, path: string): string {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`${path} muss ein String sein.`)
+  }
+  return value
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {

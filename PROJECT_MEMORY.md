@@ -21,6 +21,10 @@
 - Visual facts from brochure are shown for emotional context.
 - Core calculation inputs are centralized in:
   - `dashboard/src/data/calculation-config.json`
+- Current project timing defaults:
+  - Purchase year `2027`
+  - Rent start `Q4 2028`
+  - Denkmal-AfA start `Q4 2028`
 
 ## Working Conventions
 - Main implementation path: `dashboard/src/`.
@@ -36,3 +40,4 @@
   1. Read `SKILL.md`.
   2. Read `PROJECT_MEMORY.md`.
   3. Verify `dashboard/src/data/calculation-config.json` before changing calculations.
+  4. Review `ROADMAP.md` if the task affects architecture or reusability.

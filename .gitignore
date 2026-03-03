@@ -2,3 +2,5 @@ Asset Münster_York-Living_Münster_Broschüre.pdf
 tmp/
 dashboard/dev.err
 dashboard/dev.log
+package-lock.json
+dashboard/public/floorplans/*_old.png
