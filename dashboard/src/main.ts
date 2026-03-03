@@ -521,7 +521,8 @@ function calculateProjection(
   const bankTargetDebtService = initialBankDebt * (assumptions.bankInterestRate + assumptions.bankRepaymentRate)
   const afaPhaseOneEndYear = getAfaPhaseOneEndYear()
   const afaEndYear = getAfaEndYear()
-  const constructionInterestLoad = kfwLoan * assumptions.kfwInterestRate + bankLoan * assumptions.bankInterestRate
+  const constructionInterestLoad =
+    (kfwLoan * 0.5) * assumptions.kfwInterestRate + (bankLoan * 0.5) * assumptions.bankInterestRate
   const constructionPhaseMonthlyLiquidity = -(constructionInterestLoad / 12)
 
   let remainingKfwDebt = initialKfwDebt
