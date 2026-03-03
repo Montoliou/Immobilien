@@ -275,6 +275,11 @@ p {
   border-color: var(--accent);
 }
 
+.slider-value {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
 .small-note {
   font-size: 0.88rem;
   color: var(--ink-soft);
@@ -316,6 +321,39 @@ p {
 .metric-value {
   font-size: 1.2rem;
   font-weight: 700;
+}
+
+.liquidity-block {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.liquidity-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--base-2);
+  border-radius: var(--radius-12);
+  overflow: hidden;
+  background: #fbfcfd;
+}
+
+.liquidity-table th,
+.liquidity-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--base-2);
+  text-align: left;
+}
+
+.liquidity-table th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  background: #f2f6f8;
+}
+
+.liquidity-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .tone-positive {

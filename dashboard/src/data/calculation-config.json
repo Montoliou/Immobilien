@@ -1,10 +1,10 @@
 {
   "defaultApartmentId": "a",
-  "defaultMonthlyIncome": 6500,
+  "defaultAnnualGrossIncome": 80000,
   "incomeBounds": {
     "min": 0,
-    "max": 100000,
-    "step": 50
+    "max": 300000,
+    "step": 100
   },
   "equityModel": {
     "incomeMonthsFactor": 8,
@@ -13,12 +13,17 @@
   },
   "assumptions": {
     "rentPerSqm": 19.25,
-    "ancillaryCostRate": 0.11,
-    "vacancyRate": 0.02,
-    "interestRate": 0.038,
-    "repaymentRate": 0.02,
-    "kfwMaxLoan": 150000,
-    "kfwGrantRate": 0.1,
+    "ancillaryCostRate": 0.085,
+    "vacancyRate": 0,
+    "monthlyManagementFlat": 70,
+    "monthlyMaintenanceFlat": 30,
+    "kfwLoanAmount": 150000,
+    "kfwInterestRate": 0.029,
+    "kfwRepaymentRate": 0.024,
+    "kfwGraceYears": 3,
+    "kfwGrantAmount": 15000,
+    "bankInterestRate": 0.0485,
+    "bankRepaymentRate": 0.02,
     "monumentShare": 0.72,
     "annualGrowthRate": 0.02,
     "years": 20,
