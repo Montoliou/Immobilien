@@ -4,6 +4,13 @@
 - Turn the current York Living dashboard into a reusable real-estate presentation system.
 - Keep the calculation engine stable while swapping project content, assumptions, visuals, and timelines with minimal code changes.
 
+## Active Issues
+- Issue `#1`: PDF-Ausgabe grundlegend überarbeiten und versandfähig machen
+  - Link: `https://github.com/Montoliou/Immobilien/issues/1`
+  - Ergänzung für die Umsetzung:
+    - PDF braucht einen einfach lesbaren jährlichen Tilgungsplan
+    - Jahreswerte sollen mit Zins, Tilgung, Steuerwirkung und kumulierter Belastung nachvollziehbar sein
+
 ## Current Baseline
 - App lives in `dashboard/`.
 - UI and calculation logic are still coupled in `dashboard/src/main.ts`.
@@ -72,8 +79,28 @@
 - Add export variants:
   - customer PDF summary
   - detailed consultant PDF
+- Add a customer delivery funnel optimized for 2-3 inputs:
+  - dedicated landing route per property
+  - short intro with one CTA
+  - preselected apartment option from deep link or campaign URL
+  - optional advisor contact handoff after result view
 
-## Priority 7: Quality Guardrails
+## Priority 7: Media & Location Integration
+- Add a reusable media module for each property:
+  - exterior renderings
+  - interior renderings
+  - floorplans
+  - location module
+- Prefer source-safe location integration:
+  - Google Maps Embed or Static Maps instead of ad-hoc screenshots
+  - preserve required attribution if Google Maps imagery is used
+- Define a content pattern:
+  - first emotional image in hero
+  - second image near facts or demand narrative
+  - compact gallery/lightbox in a later section
+  - location card with map, commute note, and district context
+
+## Priority 8: Quality Guardrails
 - Add automated checks for:
   - config validation
   - projection sanity tests
