@@ -29,11 +29,16 @@
 ## Working Conventions
 - Main implementation path: `dashboard/src/`.
 - Public assets path: `dashboard/public/`.
+- Absolute workspace guardrail: only use `D:\AppEntwicklung\Immobilien`.
+- Forbidden workspace: `D:\AppEntwicklung\KundenPräsentationYorkQuartier` is out of scope and must never be opened or edited.
 - Start app:
   - `cd dashboard`
   - `npm run dev`
 - Build app:
   - `npm run build`
+- Deploy app:
+  - `.\deploy.ps1` (build + deploy)
+  - `.\deploy.ps1 -SkipBuild` (deploy only)
 
 ## Session Startup Rule
 - At start of each implementation session:

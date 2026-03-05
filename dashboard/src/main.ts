@@ -178,6 +178,8 @@ const growthBounds = { min: -2, max: 5, step: 0.1 }
 const equityBounds = { min: 0, max: 30000, step: 500 }
 const refinanceInterestRate = 0.03
 const refinanceRepaymentRate = 0.02
+const CONSULTATION_EMAIL = 'andreas.peters@mlp.de'
+const MAPS_URL = 'https://maps.app.goo.gl/t3fVRBvNyz42xWMp7'
 const heroSlides: HeroSlide[] = [
   {
     image: '/project/hero-york-living-tomorrow.png',
@@ -196,8 +198,8 @@ const heroSlides: HeroSlide[] = [
   },
   {
     image: '/project/hero-bike-city.png',
-    alt: 'Muenster, die Fahrrad-Stadt',
-    caption: 'Muenster, die Fahrrad-Stadt',
+    alt: 'Münster, die Fahrrad-Stadt',
+    caption: 'Münster, die Fahrrad-Stadt',
   },
 ]
 
@@ -211,8 +213,8 @@ app.innerHTML = `
         <div>
           <p class="config-panel-title">Rechenparameter</p>
           <p class="config-panel-copy">
-            Zins, Tilgung, Kaufpreis und Steuerannahmen direkt im UI anpassen. Aenderungen gelten
-            lokal in diesem Browser, bis du sie zuruecksetzt.
+            Zins, Tilgung, Kaufpreis und Steuerannahmen direkt im UI anpassen. Änderungen gelten
+            lokal in diesem Browser, bis du sie zurücksetzt.
           </p>
         </div>
       </div>
@@ -222,8 +224,8 @@ app.innerHTML = `
       </form>
 
       <div class="config-actions">
-        <button id="apply-config" class="btn btn-primary btn-compact" type="button">Uebernehmen</button>
-        <button id="reset-config" class="btn btn-secondary btn-compact" type="button">Zuruecksetzen</button>
+        <button id="apply-config" class="btn btn-primary btn-compact" type="button">Übernehmen</button>
+        <button id="reset-config" class="btn btn-secondary btn-compact" type="button">Zurücksetzen</button>
         <button id="copy-config" class="btn btn-secondary btn-compact" type="button">Backup JSON</button>
       </div>
 
@@ -255,7 +257,7 @@ app.innerHTML = `
                 id="hero-slide-next"
                 class="hero-slide-nav"
                 type="button"
-                aria-label="Naechstes Projektbild"
+                aria-label="Nächstes Projektbild"
               >
                 ›
               </button>
@@ -264,23 +266,22 @@ app.innerHTML = `
         </div>
       </div>
       <div class="hero-content">
-        <p class="eyebrow">York Living Muenster</p>
+        <p class="eyebrow">York Living Münster</p>
         <h1>Dein Immobilien-Check in 60 Sekunden</h1>
         <p class="lead">
-          Waehle einen Grundriss, gib dein Bruttojahreseinkommen ein und erhalte sofort eine
-          transparente ${projectionYears}-Jahres-Prognose fuer dein moegliches Vermoegen.
+          Wähle einen Grundriss, gib dein Bruttojahreseinkommen ein und erhalte sofort eine
+          transparente ${projectionYears}-Jahres-Prognose für dein mögliches Vermögen.
         </p>
         <div class="hero-actions">
-          <button id="copy-dashboard-link" class="btn btn-secondary" type="button">Neutralen Link kopieren</button>
-          <button id="copy-scenario-link" class="btn btn-primary" type="button">Szenario-Link kopieren</button>
           <a
             class="btn btn-secondary btn-link"
-            href="https://maps.app.goo.gl/t3fVRBvNyz42xWMp7"
+            href="${MAPS_URL}"
             target="_blank"
             rel="noreferrer noopener"
           >
             Lage auf Google Maps
           </a>
+          <button id="copy-scenario-link" class="btn btn-primary" type="button">Szenario-Link kopieren</button>
         </div>
         <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
       </div>
@@ -288,7 +289,7 @@ app.innerHTML = `
 
     <section class="workspace">
       <section class="panel choose-panel">
-        <h2>1. Waehle deine Wohnungsoption</h2>
+        <h2>1. Wähle deine Wohnungsoption</h2>
         <div id="apartment-options" class="apartment-options"></div>
 
         <div class="income-block">
@@ -308,7 +309,7 @@ app.innerHTML = `
 
             <fieldset class="field field-tax-mode">
               <legend>Steuertarif</legend>
-              <div class="tax-mode-switch" role="radiogroup" aria-label="Steuertarif waehlen">
+              <div class="tax-mode-switch" role="radiogroup" aria-label="Steuertarif wählen">
                 <label class="tax-mode-option" for="tax-mode-grund">
                   <input id="tax-mode-grund" type="radio" name="tax-table-mode" value="grund" />
                   <span>Grundtabelle</span>
@@ -349,7 +350,7 @@ app.innerHTML = `
 
       <section class="panel result-panel" aria-live="polite">
         <p class="eyebrow">3. Prognose</p>
-        <h2 id="result-headline">Dein moegliches Vermoegen nach ${projectionYears} Jahren</h2>
+        <h2 id="result-headline">Dein mögliches Vermögen nach ${projectionYears} Jahren</h2>
         <p id="out-wealth20" class="wealth-value">-</p>
         <p id="out-wealth-gain" class="wealth-subvalue">-</p>
 
@@ -366,24 +367,15 @@ app.innerHTML = `
 
         <div class="liquidity-block">
           <div class="liquidity-head">
-            <p class="assumption-label">Monatliche Liquiditaet ueber ${projectionYears} Jahre</p>
+            <p class="assumption-label">Monatliche Liquidität über ${projectionYears} Jahre</p>
             <div class="liquidity-head-actions">
               <button
-                id="liquidity-view-prev"
-                class="liquidity-view-nav"
+                id="liquidity-view-toggle"
+                class="liquidity-view-toggle"
                 type="button"
-                aria-label="Vorherige Liquiditaetsansicht"
+                aria-label="Zur nächsten Liquiditätsansicht wechseln"
               >
-                ‹
-              </button>
-              <p id="liquidity-mode" class="liquidity-mode">Nach Steuern</p>
-              <button
-                id="liquidity-view-next"
-                class="liquidity-view-nav"
-                type="button"
-                aria-label="Naechste Liquiditaetsansicht"
-              >
-                ›
+                <span id="liquidity-mode" class="liquidity-mode">Tabelle</span>
               </button>
             </div>
           </div>
@@ -392,7 +384,7 @@ app.innerHTML = `
 
         <div class="progress-wrap">
           <div class="progress-meta">
-            <p>Vermoegensentwicklung ueber ${projectionYears} Jahre</p>
+            <p>Vermögensentwicklung über ${projectionYears} Jahre</p>
             <p id="out-path-end">-</p>
           </div>
           <div id="wealth-path" class="wealth-path"></div>
@@ -400,7 +392,7 @@ app.innerHTML = `
 
         <div class="assumption-grid">
           <article>
-            <p class="assumption-label">Eigenkapital fuer Nebenkosten</p>
+            <p class="assumption-label">Eigenkapital für Nebenkosten</p>
             <p id="out-start-equity">-</p>
           </article>
           <article>
@@ -422,14 +414,15 @@ app.innerHTML = `
     <section class="panel contact-panel" aria-labelledby="contact-title">
       <h2 id="contact-title">Ich bin interessiert!</h2>
       <p class="lead">
-        Mit einem Klick koennen Sie direkt per E-Mail um Rueckruf bitten, sofort telefonisch
+        Mit einem Klick können Sie direkt per E-Mail um Rückruf bitten, sofort telefonisch
         Kontakt aufnehmen oder direkt einen Termin buchen.
       </p>
       <div class="contact-actions">
         <a
+          id="consultation-mail-link"
           class="btn btn-primary btn-link"
-          href="mailto:andreas.peters@mlp.de?subject=Beratung%20zum%20Immobilieninvestment%20York%20Living&body=Bitte%20kontaktieren%20Sie%20mich%20zeitnah%2C%20um%20eine%20Beratung%20zum%20Immobilieninvestment%20York%20Living%20zu%20vereinbaren."
-          aria-label="Beratungsgespraech per E-Mail anfordern"
+          href="mailto:${CONSULTATION_EMAIL}"
+          aria-label="Beratungsgespräch per E-Mail anfordern"
         >
           Beratung per Mail anfordern
         </a>
@@ -445,13 +438,13 @@ app.innerHTML = `
           href="https://mlp-onlineberatung.flexperto.com/expert?id=782"
           target="_blank"
           rel="noreferrer noopener"
-          aria-label="Direkte Terminbuchung in neuem Tab oeffnen"
+          aria-label="Direkte Terminbuchung in neuem Tab Öffnen"
         >
           Direkte Terminbuchung
         </a>
       </div>
       <p class="small-note">
-        Wenn Sie Unterstuetzung bei den Eingaben wuenschen, rufen Sie gern an oder senden Sie
+        Wenn Sie Unterstützung bei den Eingaben wünschen, rufen Sie gern an oder senden Sie
         eine kurze E-Mail.
       </p>
     </section>
@@ -466,7 +459,7 @@ app.innerHTML = `
       <div class="facts-grid">
         <article class="fact-card">
           <p class="fact-number">30.000</p>
-          <p class="fact-title">zusaetzliche Wohnungen bis 2040</p>
+          <p class="fact-title">zusätzliche Wohnungen bis 2040</p>
           <div class="fact-bar">
             <div class="fact-fill fact-fill-demand" style="width: 18%"></div>
           </div>
@@ -505,8 +498,8 @@ app.innerHTML = `
         <article class="fact-card">
           <p class="fact-number">15-20 min</p>
           <p class="fact-title">Fahrzeit zur Innenstadt</p>
-          <p class="fact-copy">Ca. 6,5 km bis Domplatz per Rad oder Auto laut Broschuere.</p>
-          <p class="fact-copy">Ein Ort, der Investment und Lebensqualitaet zusammenbringt.</p>
+          <p class="fact-copy">Ca. 6,5 km bis Domplatz per Rad oder Auto laut Broschüre.</p>
+          <p class="fact-copy">Ein Ort, der Investment und Lebensqualität zusammenbringt.</p>
         </article>
       </div>
     </section>
@@ -523,14 +516,14 @@ app.innerHTML = `
       <header class="liquidity-modal-head">
         <div>
           <p class="eyebrow">Detailansicht</p>
-          <h3 id="liquidity-modal-title">Jaehrliche Einnahmen und Ausgaben</h3>
+          <h3 id="liquidity-modal-title">Jährliche Einnahmen und Ausgaben</h3>
         </div>
         <div class="liquidity-modal-actions">
           <button
             id="liquidity-modal-cycle"
             type="button"
             class="liquidity-inline-toggle"
-            aria-label="Zur naechsten Grafikansicht wechseln"
+            aria-label="Zur nächsten Grafikansicht wechseln"
           >
             Zur Grafik
           </button>
@@ -538,7 +531,7 @@ app.innerHTML = `
             id="liquidity-modal-close"
             type="button"
             class="liquidity-view-nav"
-            aria-label="Detailansicht schliessen"
+            aria-label="Detailansicht schließen"
           >
             ×
           </button>
@@ -571,14 +564,13 @@ const shareStatus = getElementById<HTMLElement>('share-status')
 const configForm = getElementById<HTMLFormElement>('config-form')
 const configStatus = getElementById<HTMLElement>('config-status')
 const liquidityModeLabel = getElementById<HTMLElement>('liquidity-mode')
-const liquidityViewPrevButton = getElementById<HTMLButtonElement>('liquidity-view-prev')
-const liquidityViewNextButton = getElementById<HTMLButtonElement>('liquidity-view-next')
+const liquidityViewToggleButton = getElementById<HTMLButtonElement>('liquidity-view-toggle')
 const liquidityViewContent = getElementById<HTMLDivElement>('liquidity-view-content')
 const applyConfigButton = getElementById<HTMLButtonElement>('apply-config')
 const resetConfigButton = getElementById<HTMLButtonElement>('reset-config')
 const copyConfigButton = getElementById<HTMLButtonElement>('copy-config')
-const copyDashboardButton = getElementById<HTMLButtonElement>('copy-dashboard-link')
 const copyScenarioButton = getElementById<HTMLButtonElement>('copy-scenario-link')
+const consultationMailLink = getElementById<HTMLAnchorElement>('consultation-mail-link')
 const heroSlideshow = getElementById<HTMLDivElement>('hero-slideshow')
 const heroSlideImage = getElementById<HTMLImageElement>('hero-slide-image')
 const heroSlideCaption = getElementById<HTMLElement>('hero-slide-caption')
@@ -609,7 +601,7 @@ writeEquityInputValue(investedEquity)
 renderHeroSlide()
 startHeroAutoplay()
 if (hasStoredConfig()) {
-  setConfigStatus('Lokale Konfigurationsaenderungen sind aktiv.')
+  setConfigStatus('Lokale Konfigurationsänderungen sind aktiv.')
 }
 renderProjection()
 
@@ -651,16 +643,6 @@ equityInput.addEventListener('input', () => {
   renderProjection()
 })
 
-copyDashboardButton.addEventListener('click', async () => {
-  const plainUrl = `${window.location.origin}${window.location.pathname}`
-  const copied = await copyToClipboard(plainUrl)
-  setStatus(
-    copied
-      ? 'Neutraler Link ohne persoenliche Angaben wurde kopiert.'
-      : 'Kopieren fehlgeschlagen. Bitte URL manuell kopieren.',
-  )
-})
-
 copyScenarioButton.addEventListener('click', async () => {
   const scenarioUrl = buildScenarioUrl(
     selectedApartmentId,
@@ -693,13 +675,11 @@ heroSlideshow.addEventListener('focusin', stopHeroAutoplay)
 heroSlideshow.addEventListener('focusout', startHeroAutoplay)
 
 liquidityModalCloseButton.addEventListener('click', () => {
-  closeLiquidityModal()
+  dismissLiquidityTableModal()
 })
 
 liquidityModalCycleButton.addEventListener('click', () => {
-  advanceLiquidityView()
-  closeLiquidityModal()
-  renderProjection()
+  cycleLiquidityView()
 })
 
 liquidityModal.addEventListener('click', (event) => {
@@ -711,24 +691,18 @@ liquidityModal.addEventListener('click', (event) => {
   if (!closeTrigger) {
     return
   }
-  closeLiquidityModal()
+  dismissLiquidityTableModal()
 })
 
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape' || !isLiquidityModalOpen) {
     return
   }
-  closeLiquidityModal()
+  dismissLiquidityTableModal()
 })
 
-liquidityViewPrevButton.addEventListener('click', () => {
-  retreatLiquidityView()
-  renderProjection()
-})
-
-liquidityViewNextButton.addEventListener('click', () => {
-  advanceLiquidityView()
-  renderProjection()
+liquidityViewToggleButton.addEventListener('click', () => {
+  cycleLiquidityView()
 })
 
 liquidityViewContent.addEventListener('click', (event) => {
@@ -736,17 +710,11 @@ liquidityViewContent.addEventListener('click', (event) => {
   if (!(target instanceof HTMLElement)) {
     return
   }
-  const openTableTrigger = target.closest<HTMLElement>('[data-liquidity-open-table="true"]')
-  if (openTableTrigger && latestProjectionResult) {
-    openLiquidityModal(latestProjectionResult)
-    return
-  }
   const trigger = target.closest<HTMLElement>('[data-liquidity-cycle="true"]')
   if (!trigger) {
     return
   }
-  advanceLiquidityView()
-  renderProjection()
+  cycleLiquidityView()
 })
 
 applyConfigButton.addEventListener('click', () => {
@@ -779,7 +747,7 @@ copyConfigButton.addEventListener('click', async () => {
     )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
-    setConfigStatus(`Konfiguration ist noch nicht gueltig: ${message}`, true)
+    setConfigStatus(`Konfiguration ist noch nicht gültig: ${message}`, true)
   }
 })
 
@@ -835,11 +803,11 @@ function renderProjection(): void {
   )
   latestProjectionResult = result
 
-  setText('result-headline', `Dein moegliches Vermoegen nach ${projectionYears} Jahren mit ${apartment.label}`)
+  setText('result-headline', `Dein mögliches Vermögen nach ${projectionYears} Jahren mit ${apartment.label}`)
   setText('out-wealth20', formatCurrency(result.wealth20))
   setText(
     'out-wealth-gain',
-    `Vermoegenszuwachs ggü. Startkapital: ${formatSignedCurrency(result.wealthGain20)}`,
+    `Vermögenszuwachs ggü. Startkapital: ${formatSignedCurrency(result.wealthGain20)}`,
   )
   setText('out-object-value', formatCurrency(result.projectedValue20))
   setText('out-cashflow20', formatSignedCurrency(result.cumulativeCashflow20))
@@ -859,6 +827,7 @@ function renderProjection(): void {
   )
   setText('out-tax-label', `Steuer laut ${getTaxTableLabel(result.taxTableMode)}`)
   setText('out-refinance-debt', formatCurrency(result.refinanceDebtBase))
+  updateConsultationMailLink(result)
 
   renderLiquidityView(result)
   renderWealthPath(result.yearlyWealthPath)
@@ -1082,28 +1051,10 @@ function renderWealthPath(values: number[]): void {
 }
 
 function renderLiquidityView(result: ProjectionResult): void {
-  const modeLabel = getLiquidityViewLabel(liquidityViewMode)
-  liquidityModeLabel.textContent = modeLabel
-  const previousView = getPreviousLiquidityView(liquidityViewMode)
+  liquidityModeLabel.textContent = getLiquidityToggleLabel(liquidityViewMode)
   const nextView = getNextLiquidityView(liquidityViewMode)
-  liquidityViewPrevButton.title = `Vorherige Ansicht: ${getLiquidityViewLabel(previousView)}`
-  liquidityViewNextButton.title = `Naechste Ansicht: ${getLiquidityViewLabel(nextView)}`
-  liquidityViewPrevButton.setAttribute(
-    'aria-label',
-    `Vorherige Ansicht: ${getLiquidityViewLabel(previousView)}`,
-  )
-  liquidityViewNextButton.setAttribute(
-    'aria-label',
-    `Naechste Ansicht: ${getLiquidityViewLabel(nextView)}`,
-  )
-
-  if (liquidityViewMode === 'table') {
-    liquidityViewContent.innerHTML = renderLiquidityTablePreview(result)
-    openLiquidityModal(result)
-    return
-  }
-
-  closeLiquidityModal()
+  liquidityViewToggleButton.title = `Nächste Ansicht: ${getLiquidityViewLabel(nextView)}`
+  liquidityViewToggleButton.setAttribute('aria-label', `Nächste Ansicht: ${getLiquidityViewLabel(nextView)}`)
   const basis = liquidityViewMode === 'afterTaxChart' ? 'afterTax' : 'beforeTax'
   liquidityViewContent.innerHTML = renderLiquidityChart(result, basis)
 }
@@ -1128,12 +1079,12 @@ function renderLiquidityChart(
       class="liquidity-chart-card"
       type="button"
       data-liquidity-cycle="true"
-      aria-label="Liquiditaetsansicht weiterschalten"
+      aria-label="Liquiditätsansicht weiterschalten"
     >
       <div class="liquidity-chart-meta">
         <div>
           <p class="liquidity-chart-title">${modeLabel}</p>
-          <p class="liquidity-chart-copy">Klick auf das Diagramm fuer die naechste Ansicht</p>
+          <p class="liquidity-chart-copy">Klick auf das Diagramm für die nächste Ansicht</p>
         </div>
         <p class="liquidity-chart-range">${formatSignedCurrency(minValue)} bis ${formatSignedCurrency(maxValue)} / Monat</p>
       </div>
@@ -1165,29 +1116,11 @@ function renderLiquidityChart(
   `
 }
 
-function renderLiquidityTablePreview(result: ProjectionResult): string {
+function renderLiquidityTable(result: ProjectionResult): string {
   const startYear = result.yearlyLiquidityRows[0]?.calendarYear ?? assumptions.purchaseYear
   const endYear =
     result.yearlyLiquidityRows[result.yearlyLiquidityRows.length - 1]?.calendarYear ??
     assumptions.purchaseYear + projectionYears - 1
-
-  return `
-    <button
-      type="button"
-      class="liquidity-table-preview"
-      data-liquidity-open-table="true"
-      aria-label="Vollbildansicht der Liquiditaetstabelle oeffnen"
-    >
-      <p class="liquidity-chart-title">Details im Vollbild ansehen</p>
-      <p class="liquidity-chart-copy">
-        ${startYear} bis ${endYear} mit allen Jahreswerten zu Miete, Zins, Tilgung, Steuer und Kumulierung.
-      </p>
-      <span class="liquidity-inline-toggle">Tabelle oeffnen</span>
-    </button>
-  `
-}
-
-function renderLiquidityTable(result: ProjectionResult): string {
   let cumulativeAfterTax = 0
 
   const rows = result.yearlyLiquidityRows
@@ -1217,8 +1150,14 @@ function renderLiquidityTable(result: ProjectionResult): string {
 
   return `
     <div class="liquidity-table-card liquidity-table-card-modal">
+      <div class="liquidity-table-head">
+        <div>
+          <p class="liquidity-chart-title">Jährliche Liquiditätsdetails</p>
+          <p class="liquidity-chart-copy">${startYear} bis ${endYear} mit allen Jahreswerten.</p>
+        </div>
+      </div>
       <div class="liquidity-table-scroll liquidity-table-scroll-modal">
-        <table class="liquidity-detail-table" aria-label="Jaehrliche Einnahmen Ausgaben Details">
+        <table class="liquidity-detail-table" aria-label="Jährliche Einnahmen Ausgaben Details">
           <thead>
             <tr>
               <th>Jahr</th>
@@ -1241,6 +1180,8 @@ function renderLiquidityTable(result: ProjectionResult): string {
 
 function openLiquidityModal(result: ProjectionResult): void {
   liquidityModalContent.innerHTML = renderLiquidityTable(result)
+  liquidityModalCycleButton.textContent = getLiquidityToggleLabel('table')
+  liquidityModalCycleButton.setAttribute('aria-label', 'Zur nächsten Liquiditätsansicht wechseln')
 
   if (isLiquidityModalOpen) {
     return
@@ -1267,8 +1208,31 @@ function advanceLiquidityView(): void {
   liquidityViewMode = getNextLiquidityView(liquidityViewMode)
 }
 
-function retreatLiquidityView(): void {
-  liquidityViewMode = getPreviousLiquidityView(liquidityViewMode)
+function cycleLiquidityView(): void {
+  advanceLiquidityView()
+  renderProjection()
+
+  if (liquidityViewMode !== 'table') {
+    closeLiquidityModal()
+    return
+  }
+
+  if (!latestProjectionResult) {
+    return
+  }
+
+  openLiquidityModal(latestProjectionResult)
+}
+
+function dismissLiquidityTableModal(): void {
+  closeLiquidityModal()
+
+  if (liquidityViewMode !== 'table') {
+    return
+  }
+
+  liquidityViewMode = 'beforeTaxChart'
+  renderProjection()
 }
 
 function getNextLiquidityView(viewMode: LiquidityViewMode): LiquidityViewMode {
@@ -1281,16 +1245,6 @@ function getNextLiquidityView(viewMode: LiquidityViewMode): LiquidityViewMode {
   return 'afterTaxChart'
 }
 
-function getPreviousLiquidityView(viewMode: LiquidityViewMode): LiquidityViewMode {
-  if (viewMode === 'afterTaxChart') {
-    return 'table'
-  }
-  if (viewMode === 'beforeTaxChart') {
-    return 'afterTaxChart'
-  }
-  return 'beforeTaxChart'
-}
-
 function getLiquidityViewLabel(viewMode: LiquidityViewMode): string {
   if (viewMode === 'afterTaxChart') {
     return 'Nach Steuern'
@@ -1298,7 +1252,17 @@ function getLiquidityViewLabel(viewMode: LiquidityViewMode): string {
   if (viewMode === 'beforeTaxChart') {
     return 'Vor Steuern'
   }
-  return 'Details'
+  return 'Tabelle'
+}
+
+function getLiquidityToggleLabel(viewMode: LiquidityViewMode): string {
+  if (viewMode === 'afterTaxChart') {
+    return 'Vor Steuern'
+  }
+  if (viewMode === 'beforeTaxChart') {
+    return 'Tabelle'
+  }
+  return 'Nach Steuern'
 }
 
 function syncUrlState(): void {
@@ -1379,6 +1343,36 @@ function buildScenarioUrl(
   params.set('growth', String(growthRatePercent))
   params.set('equity', String(Math.round(equityAmount)))
   return `${window.location.origin}${window.location.pathname}?${params.toString()}`
+}
+
+function updateConsultationMailLink(result: ProjectionResult): void {
+  const scenarioUrl = buildScenarioUrl(
+    selectedApartmentId,
+    selectedTaxTableMode,
+    annualGrossIncome,
+    annualGrowthRatePercent,
+    investedEquity,
+  )
+  const subject = 'Beratung zum Immobilieninvestment York Living'
+  const bodyLines = [
+    'Guten Tag Herr Peters,',
+    '',
+    'bitte kontaktieren Sie mich zeitnah, um ein Beratungsgespräch zum Immobilieninvestment York Living zu vereinbaren.',
+    '',
+    'Meine aktuelle Berechnung:',
+    `- Wohnungsoption: ${result.apartment.label} (${result.apartment.subtitle})`,
+    `- Steuertarif: ${getTaxTableLabel(result.taxTableMode)}`,
+    `- Bruttojahreseinkommen: ${formatCurrency(result.annualGrossIncome)}`,
+    `- Wertentwicklung p.a.: ${formatSignedPercent(result.annualGrowthRate * 100)} %`,
+    `- Eingesetztes Eigenkapital: ${formatCurrency(result.startEquity)}`,
+    '',
+    `Szenario-Link: ${scenarioUrl}`,
+  ]
+  const params = new URLSearchParams({
+    subject,
+    body: bodyLines.join('\n'),
+  })
+  consultationMailLink.href = `mailto:${CONSULTATION_EMAIL}?${params.toString()}`
 }
 
 function setText(targetId: string, value: string): void {
@@ -1561,7 +1555,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-kfw-loan-amount',
           label: 'KfW-Darlehen',
-          hint: 'Foerderdarlehen fuer das Objekt.',
+          hint: 'Förderdarlehen für das Objekt.',
           mode: 'currency',
           min: 0,
           step: 500,
@@ -1574,7 +1568,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-kfw-interest-rate',
           label: 'KfW-Zins',
-          hint: 'Nominalzins fuer den KfW-Anteil.',
+          hint: 'Nominalzins für den KfW-Anteil.',
           mode: 'percent',
           min: 0,
           max: 15,
@@ -1588,7 +1582,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-kfw-repayment-rate',
           label: 'KfW-Tilgung',
-          hint: 'Regulaere Tilgung nach der Karenz.',
+          hint: 'Reguläre Tilgung nach der Karenz.',
           mode: 'percent',
           min: 0,
           max: 15,
@@ -1629,7 +1623,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-bank-interest-rate',
           label: 'Bankzins',
-          hint: 'Nominalzins fuer den Bankanteil.',
+          hint: 'Nominalzins für den Bankanteil.',
           mode: 'percent',
           min: 0,
           max: 15,
@@ -1643,7 +1637,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-bank-repayment-rate',
           label: 'Banktilgung',
-          hint: 'Jaehrliche Tilgung fuer das Bankdarlehen.',
+          hint: 'Jährliche Tilgung für das Bankdarlehen.',
           mode: 'percent',
           min: 0,
           max: 15,
@@ -1663,7 +1657,7 @@ function buildConfigSections(): ConfigSection[] {
         {
           type: 'number',
           id: 'config-rent-per-sqm',
-          label: 'Miete pro m2',
+          label: 'Miete pro m²',
           hint: 'Monatliche Nettokaltmiete je Quadratmeter.',
           mode: 'currency',
           min: 0,
@@ -1734,7 +1728,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-monument-share',
           label: 'Denkmalanteil',
-          hint: 'Abschreibungsfaehiger Anteil am Kaufpreis.',
+          hint: 'Abschreibungsfähiger Anteil am Kaufpreis.',
           mode: 'percent',
           min: 0,
           max: 100,
@@ -1762,7 +1756,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-vacancy-rate',
           label: 'Leerstandsquote',
-          hint: 'Sicherheitsabschlag fuer entgangene Miete.',
+          hint: 'Sicherheitsabschlag für entgangene Miete.',
           mode: 'percent',
           min: 0,
           max: 20,
@@ -1788,7 +1782,7 @@ function buildConfigSections(): ConfigSection[] {
         {
           type: 'number',
           id: 'config-monthly-maintenance-flat',
-          label: 'Ruecklage pauschal',
+          label: 'Rücklage pauschal',
           hint: 'Projektweiter Monatswert in EUR.',
           mode: 'currency',
           min: 0,
@@ -1802,14 +1796,14 @@ function buildConfigSections(): ConfigSection[] {
     },
     {
       title: 'Wohnung A',
-      copy: '1-Zimmer-Apartment aus der Broschuere.',
+      copy: '1-Zimmer-Apartment aus der Broschüre.',
       open: false,
       fields: [
         {
           type: 'number',
           id: 'config-apartment-a-size',
-          label: 'Groesse',
-          hint: 'Wohnflaeche in m2.',
+          label: 'Größe',
+          hint: 'Wohnfläche in m².',
           mode: 'number',
           min: 10,
           max: 120,
@@ -1848,7 +1842,7 @@ function buildConfigSections(): ConfigSection[] {
         {
           type: 'number',
           id: 'config-apartment-a-maintenance',
-          label: 'Ruecklage',
+          label: 'Rücklage',
           hint: 'Wohnungsspezifische Instandhaltung pro Monat.',
           mode: 'currency',
           min: 0,
@@ -1862,7 +1856,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-apartment-a-other-cost',
           label: 'Weitere Kosten',
-          hint: 'Sonstige Monatskosten fuer Wohnung A.',
+          hint: 'Sonstige Monatskosten für Wohnung A.',
           mode: 'currency',
           min: 0,
           step: 5,
@@ -1875,14 +1869,14 @@ function buildConfigSections(): ConfigSection[] {
     },
     {
       title: 'Wohnung B',
-      copy: '2-Zimmer-Apartment aus der Broschuere.',
+      copy: '2-Zimmer-Apartment aus der Broschüre.',
       open: false,
       fields: [
         {
           type: 'number',
           id: 'config-apartment-b-size',
-          label: 'Groesse',
-          hint: 'Wohnflaeche in m2.',
+          label: 'Größe',
+          hint: 'Wohnfläche in m².',
           mode: 'number',
           min: 10,
           max: 120,
@@ -1921,7 +1915,7 @@ function buildConfigSections(): ConfigSection[] {
         {
           type: 'number',
           id: 'config-apartment-b-maintenance',
-          label: 'Ruecklage',
+          label: 'Rücklage',
           hint: 'Wohnungsspezifische Instandhaltung pro Monat.',
           mode: 'currency',
           min: 0,
@@ -1935,7 +1929,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-apartment-b-other-cost',
           label: 'Weitere Kosten',
-          hint: 'Sonstige Monatskosten fuer Wohnung B.',
+          hint: 'Sonstige Monatskosten für Wohnung B.',
           mode: 'currency',
           min: 0,
           step: 5,
@@ -1948,14 +1942,14 @@ function buildConfigSections(): ConfigSection[] {
     },
     {
       title: 'AfA & Steuer',
-      copy: 'Abschreibung und Grenzsteuersaetze fuer die Liquiditaet.',
+      copy: 'Abschreibung und Grenzsteuersätze für die Liquidität.',
       open: false,
       fields: [
         {
           type: 'number',
           id: 'config-projection-years',
           label: 'Projektionsjahre',
-          hint: 'Laufzeit der Vermoegensprojektion.',
+          hint: 'Laufzeit der Vermögensprojektion.',
           mode: 'number',
           min: 1,
           max: 40,
@@ -1969,7 +1963,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-afa-start-year',
           label: 'AfA Start Jahr',
-          hint: 'Jahr des Abschlusses der beguenstigten Baumaßnahme.',
+          hint: 'Jahr des Abschlusses der begünstigten Baumaßnahme.',
           mode: 'number',
           min: 2020,
           max: 2045,
@@ -1983,7 +1977,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-afa-start-quarter',
           label: 'AfA Start Quartal',
-          hint: 'Quartal, ab dem die Denkmal-AfA erstmals anlaeuft.',
+          hint: 'Quartal, ab dem die Denkmal-AfA erstmals anläuft.',
           mode: 'number',
           min: 1,
           max: 4,
@@ -2057,7 +2051,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-tax-limit-1',
           label: 'Steuergrenze 1',
-          hint: 'Monatliches Brutto fuer Satz 1.',
+          hint: 'Monatliches Brutto für Satz 1.',
           mode: 'currency',
           min: 0,
           step: 50,
@@ -2070,7 +2064,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-tax-rate-1',
           label: 'Steuersatz 1',
-          hint: 'Grenzsteuersatz fuer die erste Stufe.',
+          hint: 'Grenzsteuersatz für die erste Stufe.',
           mode: 'percent',
           min: 0,
           max: 60,
@@ -2084,7 +2078,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-tax-limit-2',
           label: 'Steuergrenze 2',
-          hint: 'Monatliches Brutto fuer Satz 2.',
+          hint: 'Monatliches Brutto für Satz 2.',
           mode: 'currency',
           min: 0,
           step: 50,
@@ -2097,7 +2091,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-tax-rate-2',
           label: 'Steuersatz 2',
-          hint: 'Grenzsteuersatz fuer die zweite Stufe.',
+          hint: 'Grenzsteuersatz für die zweite Stufe.',
           mode: 'percent',
           min: 0,
           max: 60,
@@ -2111,7 +2105,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-tax-limit-3',
           label: 'Steuergrenze 3',
-          hint: 'Monatliches Brutto fuer Satz 3.',
+          hint: 'Monatliches Brutto für Satz 3.',
           mode: 'currency',
           min: 0,
           step: 50,
@@ -2124,7 +2118,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-tax-rate-3',
           label: 'Steuersatz 3',
-          hint: 'Grenzsteuersatz fuer die dritte Stufe.',
+          hint: 'Grenzsteuersatz für die dritte Stufe.',
           mode: 'percent',
           min: 0,
           max: 60,
@@ -2138,7 +2132,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-tax-limit-4',
           label: 'Steuergrenze 4',
-          hint: 'Monatliches Brutto fuer Satz 4.',
+          hint: 'Monatliches Brutto für Satz 4.',
           mode: 'currency',
           min: 0,
           step: 50,
@@ -2151,7 +2145,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-tax-rate-4',
           label: 'Steuersatz 4',
-          hint: 'Grenzsteuersatz fuer die vierte Stufe.',
+          hint: 'Grenzsteuersatz für die vierte Stufe.',
           mode: 'percent',
           min: 0,
           max: 60,
@@ -2165,7 +2159,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-tax-limit-5',
           label: 'Steuergrenze 5',
-          hint: 'Monatliches Brutto fuer Satz 5.',
+          hint: 'Monatliches Brutto für Satz 5.',
           mode: 'currency',
           min: 0,
           step: 50,
@@ -2178,7 +2172,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-tax-rate-5',
           label: 'Steuersatz 5',
-          hint: 'Grenzsteuersatz fuer die letzte Stufe.',
+          hint: 'Grenzsteuersatz für die letzte Stufe.',
           mode: 'percent',
           min: 0,
           max: 60,
@@ -2192,14 +2186,14 @@ function buildConfigSections(): ConfigSection[] {
     },
     {
       title: 'Standards & Grenzen',
-      copy: 'Vorgaben fuer den Rechner und die UI-Schieberegler.',
+      copy: 'Vorgaben für den Rechner und die UI-Schieberegler.',
       open: false,
       fields: [
         {
           type: 'select',
           id: 'config-default-apartment',
           label: 'Startwohnung',
-          hint: 'Welche Wohnung zuerst ausgewaehlt sein soll.',
+          hint: 'Welche Wohnung zuerst ausgewählt sein soll.',
           options: (value) =>
             value.apartments.map((entry) => ({
               value: entry.id,
@@ -2208,7 +2202,7 @@ function buildConfigSections(): ConfigSection[] {
           get: (value) => value.defaultApartmentId,
           set: (value, next) => {
             if (!isApartmentId(next)) {
-              throw new Error('Startwohnung ist ungueltig.')
+              throw new Error('Startwohnung ist ungültig.')
             }
             value.defaultApartmentId = next
           },
@@ -2230,7 +2224,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-income-min',
           label: 'Einkommen Minimum',
-          hint: 'Untergrenze fuer das Eingabefeld.',
+          hint: 'Untergrenze für das Eingabefeld.',
           mode: 'currency',
           min: 0,
           step: 100,
@@ -2243,7 +2237,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-income-max',
           label: 'Einkommen Maximum',
-          hint: 'Obergrenze fuer das Eingabefeld.',
+          hint: 'Obergrenze für das Eingabefeld.',
           mode: 'currency',
           min: 1000,
           step: 100,
@@ -2283,7 +2277,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-min-equity',
           label: 'Mindest-Eigenkapital',
-          hint: 'Untergrenze fuer das Eigenkapital im Rechner.',
+          hint: 'Untergrenze für das Eigenkapital im Rechner.',
           mode: 'currency',
           min: 0,
           step: 500,
@@ -2296,7 +2290,7 @@ function buildConfigSections(): ConfigSection[] {
           type: 'number',
           id: 'config-max-investment-ratio',
           label: 'Max. Investitionsquote',
-          hint: 'Deckel fuer das eingesetzte Eigenkapital relativ zum Investment.',
+          hint: 'Deckel für das eingesetzte Eigenkapital relativ zum Investment.',
           mode: 'percent',
           min: 0,
           max: 100,
@@ -2494,15 +2488,15 @@ function validateConfig(candidate: unknown): CalculationConfig {
   }
 
   if (!isRecord(incomeBounds)) {
-    throw new Error('incomeBounds fehlt oder ist ungueltig.')
+    throw new Error('incomeBounds fehlt oder ist ungültig.')
   }
 
   if (!isRecord(equityModel)) {
-    throw new Error('equityModel fehlt oder ist ungueltig.')
+    throw new Error('equityModel fehlt oder ist ungültig.')
   }
 
   if (!isRecord(assumptionsCandidate)) {
-    throw new Error('assumptions fehlt oder ist ungueltig.')
+    throw new Error('assumptions fehlt oder ist ungültig.')
   }
 
   if (!Array.isArray(apartmentsCandidate) || apartmentsCandidate.length === 0) {
@@ -2520,7 +2514,7 @@ function validateConfig(candidate: unknown): CalculationConfig {
 
     const apartmentIdValue = String(entry.id)
     if (!isApartmentId(apartmentIdValue)) {
-      throw new Error('Jedes apartment braucht eine gueltige id ("a" oder "b").')
+      throw new Error('Jedes apartment braucht eine gültige id ("a" oder "b").')
     }
     const apartmentId: ApartmentId = apartmentIdValue
 
@@ -2586,7 +2580,7 @@ function validateConfig(candidate: unknown): CalculationConfig {
     afaSchedule: Array.isArray(assumptionsCandidate.afaSchedule)
       ? assumptionsCandidate.afaSchedule.map((entry, index) => {
           if (!isRecord(entry)) {
-            throw new Error(`assumptions.afaSchedule[${index}] ist ungueltig.`)
+            throw new Error(`assumptions.afaSchedule[${index}] ist ungültig.`)
           }
           return {
             startYear: asNumber(entry.startYear, `assumptions.afaSchedule[${index}].startYear`),
@@ -2601,7 +2595,7 @@ function validateConfig(candidate: unknown): CalculationConfig {
 
   const taxBrackets = taxBracketsCandidate.map((entry, index) => {
     if (!isRecord(entry)) {
-      throw new Error(`taxBrackets[${index}] ist ungueltig.`)
+      throw new Error(`taxBrackets[${index}] ist ungültig.`)
     }
     return {
       maxMonthlyIncome: asNumber(entry.maxMonthlyIncome, `taxBrackets[${index}].maxMonthlyIncome`),
@@ -2711,7 +2705,7 @@ function parseRequiredNumber(rawValue: string, id: string): number {
   }
   const parsed = Number.parseFloat(normalized)
   if (!Number.isFinite(parsed)) {
-    throw new Error(`"${id}" ist keine gueltige Zahl.`)
+    throw new Error(`"${id}" ist keine gültige Zahl.`)
   }
   return parsed
 }
@@ -2727,7 +2721,7 @@ function getFormElement<T extends HTMLElement>(form: HTMLFormElement, id: string
 function getConfigApartment(sourceConfig: CalculationConfig, apartmentId: ApartmentId): ApartmentOption {
   const apartment = sourceConfig.apartments.find((entry) => entry.id === apartmentId)
   if (!apartment) {
-    throw new Error(`Konfigurationsdaten fuer Wohnung "${apartmentId}" fehlen.`)
+    throw new Error(`Konfigurationsdaten für Wohnung "${apartmentId}" fehlen.`)
   }
   return apartment
 }
@@ -2755,7 +2749,7 @@ function getConfigTaxBracket(sourceConfig: CalculationConfig, index: number): Ta
 
 function buildApartmentSubtitle(apartmentId: ApartmentId, size: number): string {
   const rooms = apartmentId === 'a' ? '1-Zimmer' : '2-Zimmer'
-  return `${rooms}, ca. ${Math.round(size)} m2`
+  return `${rooms}, ca. ${Math.round(size)} m²`
 }
 
 function setConfigStatus(message: string, isError = false): void {
@@ -2810,3 +2804,4 @@ function resolvePublicAssetPath(path: string): string {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
   return `${normalizedBase}${normalizedPath}`
 }
+
