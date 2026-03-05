@@ -1,6 +1,5 @@
 import './style.css'
 import calculationConfig from './data/calculation-config.json'
-import { jsPDF } from 'jspdf'
 
 type ApartmentId = 'a' | 'b'
 
@@ -135,6 +134,7 @@ type YearlyLiquidityRow = {
 
 type ProjectionResult = {
   apartment: ApartmentOption
+  taxTableMode: TaxTableMode
   annualGrossIncome: number
   annualTax: number
   marginalTaxRate: number
@@ -159,6 +159,13 @@ type ProjectionResult = {
 }
 
 type LiquidityViewMode = 'afterTaxChart' | 'beforeTaxChart' | 'table'
+type TaxTableMode = 'grund' | 'splitting'
+
+type HeroSlide = {
+  image: string
+  alt: string
+  caption: string
+}
 
 const CONFIG_STORAGE_KEY = 'york-living-runtime-config'
 const defaultConfig = deepCloneConfig(calculationConfig as CalculationConfig)
@@ -171,6 +178,28 @@ const growthBounds = { min: -2, max: 5, step: 0.1 }
 const equityBounds = { min: 0, max: 30000, step: 500 }
 const refinanceInterestRate = 0.03
 const refinanceRepaymentRate = 0.02
+const heroSlides: HeroSlide[] = [
+  {
+    image: '/project/hero-york-living-tomorrow.png',
+    alt: 'York Living morgen',
+    caption: 'York Living morgen',
+  },
+  {
+    image: '/project/hero-modern-living.png',
+    alt: 'Modern Living',
+    caption: 'Modern Living',
+  },
+  {
+    image: '/project/hero-york-today.png',
+    alt: 'York Quartier heute',
+    caption: 'York Quartier heute',
+  },
+  {
+    image: '/project/hero-bike-city.png',
+    alt: 'Muenster, die Fahrrad-Stadt',
+    caption: 'Muenster, die Fahrrad-Stadt',
+  },
+]
 
 const app = getElementById<HTMLDivElement>('app')
 
@@ -205,18 +234,53 @@ app.innerHTML = `
   <main class="page">
     <section class="panel hero">
       <div class="hero-visual">
-        <img src="/project/york-living-hero.png" alt="Visualisierung York Living in Muenster" />
+        <div id="hero-slideshow" class="hero-slideshow">
+          <img
+            id="hero-slide-image"
+            src="${resolvePublicAssetPath(heroSlides[0].image)}"
+            alt="${heroSlides[0].alt}"
+          />
+          <div class="hero-slide-overlay">
+            <p id="hero-slide-caption" class="hero-slide-caption">${heroSlides[0].caption}</p>
+            <div class="hero-slide-controls">
+              <button
+                id="hero-slide-prev"
+                class="hero-slide-nav"
+                type="button"
+                aria-label="Vorheriges Projektbild"
+              >
+                ‹
+              </button>
+              <button
+                id="hero-slide-next"
+                class="hero-slide-nav"
+                type="button"
+                aria-label="Naechstes Projektbild"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="hero-content">
         <p class="eyebrow">York Living Muenster</p>
         <h1>Dein Immobilien-Check in 60 Sekunden</h1>
         <p class="lead">
-          Waehle einen Grundriss, gib dein monatliches Netto-Einkommen ein und erhalte sofort eine
+          Waehle einen Grundriss, gib dein Bruttojahreseinkommen ein und erhalte sofort eine
           transparente ${projectionYears}-Jahres-Prognose fuer dein moegliches Vermoegen.
         </p>
         <div class="hero-actions">
           <button id="copy-dashboard-link" class="btn btn-secondary" type="button">Neutralen Link kopieren</button>
           <button id="copy-scenario-link" class="btn btn-primary" type="button">Szenario-Link kopieren</button>
+          <a
+            class="btn btn-secondary btn-link"
+            href="https://maps.app.goo.gl/t3fVRBvNyz42xWMp7"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            Lage auf Google Maps
+          </a>
         </div>
         <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
       </div>
@@ -229,17 +293,33 @@ app.innerHTML = `
 
         <div class="income-block">
           <h2>2. Dein Bruttojahreseinkommen</h2>
-          <label class="field" for="annual-gross-income">
-            <span>Bruttojahreseinkommen (EUR)</span>
-            <input
-              id="annual-gross-income"
-              type="number"
-              min="${config.incomeBounds.min}"
-              max="${config.incomeBounds.max}"
-              step="${config.incomeBounds.step}"
-              inputmode="decimal"
-            />
-          </label>
+          <div class="income-row">
+            <label class="field field-income-compact" for="annual-gross-income">
+              <span>Bruttojahreseinkommen (EUR)</span>
+              <input
+                id="annual-gross-income"
+                type="number"
+                min="${config.incomeBounds.min}"
+                max="${config.incomeBounds.max}"
+                step="${config.incomeBounds.step}"
+                inputmode="decimal"
+              />
+            </label>
+
+            <fieldset class="field field-tax-mode">
+              <legend>Steuertarif</legend>
+              <div class="tax-mode-switch" role="radiogroup" aria-label="Steuertarif waehlen">
+                <label class="tax-mode-option" for="tax-mode-grund">
+                  <input id="tax-mode-grund" type="radio" name="tax-table-mode" value="grund" />
+                  <span>Grundtabelle</span>
+                </label>
+                <label class="tax-mode-option" for="tax-mode-splitting">
+                  <input id="tax-mode-splitting" type="radio" name="tax-table-mode" value="splitting" />
+                  <span>Splitting</span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
 
           <label class="field" for="growth-rate">
             <span>Gemeinsame Wertentwicklung Objektwert + Miete (pro Jahr)</span>
@@ -308,9 +388,6 @@ app.innerHTML = `
             </div>
           </div>
           <div id="liquidity-view-content" class="liquidity-view-content"></div>
-          <button id="download-liquidity-pdf" class="btn btn-secondary" type="button">
-            Liquiditaetsrechnung als PDF herunterladen
-          </button>
         </div>
 
         <div class="progress-wrap">
@@ -331,7 +408,7 @@ app.innerHTML = `
             <p id="out-total-investment">-</p>
           </article>
           <article>
-            <p class="assumption-label">Steuer laut Grundtabelle</p>
+            <p id="out-tax-label" class="assumption-label">Steuer laut Grundtabelle</p>
             <p id="out-tax-rate">-</p>
           </article>
           <article>
@@ -340,6 +417,43 @@ app.innerHTML = `
           </article>
         </div>
       </section>
+    </section>
+
+    <section class="panel contact-panel" aria-labelledby="contact-title">
+      <h2 id="contact-title">Ich bin interessiert!</h2>
+      <p class="lead">
+        Mit einem Klick koennen Sie direkt per E-Mail um Rueckruf bitten, sofort telefonisch
+        Kontakt aufnehmen oder direkt einen Termin buchen.
+      </p>
+      <div class="contact-actions">
+        <a
+          class="btn btn-primary btn-link"
+          href="mailto:andreas.peters@mlp.de?subject=Beratung%20zum%20Immobilieninvestment%20York%20Living&body=Bitte%20kontaktieren%20Sie%20mich%20zeitnah%2C%20um%20eine%20Beratung%20zum%20Immobilieninvestment%20York%20Living%20zu%20vereinbaren."
+          aria-label="Beratungsgespraech per E-Mail anfordern"
+        >
+          Beratung per Mail anfordern
+        </a>
+        <a
+          class="btn btn-secondary btn-link"
+          href="tel:+4915119690871"
+          aria-label="Jetzt anrufen unter 0151 19690871"
+        >
+          Direkt anrufen: 0151/19690871
+        </a>
+        <a
+          class="btn btn-secondary btn-link"
+          href="https://mlp-onlineberatung.flexperto.com/expert?id=782"
+          target="_blank"
+          rel="noreferrer noopener"
+          aria-label="Direkte Terminbuchung in neuem Tab oeffnen"
+        >
+          Direkte Terminbuchung
+        </a>
+      </div>
+      <p class="small-note">
+        Wenn Sie Unterstuetzung bei den Eingaben wuenschen, rufen Sie gern an oder senden Sie
+        eine kurze E-Mail.
+      </p>
     </section>
 
     <section class="panel facts-panel">
@@ -397,6 +511,42 @@ app.innerHTML = `
       </div>
     </section>
   </main>
+
+  <div id="liquidity-modal" class="liquidity-modal" aria-hidden="true">
+    <div class="liquidity-modal-backdrop" data-liquidity-modal-close="true"></div>
+    <section
+      class="liquidity-modal-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="liquidity-modal-title"
+    >
+      <header class="liquidity-modal-head">
+        <div>
+          <p class="eyebrow">Detailansicht</p>
+          <h3 id="liquidity-modal-title">Jaehrliche Einnahmen und Ausgaben</h3>
+        </div>
+        <div class="liquidity-modal-actions">
+          <button
+            id="liquidity-modal-cycle"
+            type="button"
+            class="liquidity-inline-toggle"
+            aria-label="Zur naechsten Grafikansicht wechseln"
+          >
+            Zur Grafik
+          </button>
+          <button
+            id="liquidity-modal-close"
+            type="button"
+            class="liquidity-view-nav"
+            aria-label="Detailansicht schliessen"
+          >
+            ×
+          </button>
+        </div>
+      </header>
+      <div id="liquidity-modal-content" class="liquidity-modal-content"></div>
+    </section>
+  </div>
 `
 
 const currency = new Intl.NumberFormat('de-DE', {
@@ -412,6 +562,9 @@ const percent = new Intl.NumberFormat('de-DE', {
 
 const apartmentContainer = getElementById<HTMLDivElement>('apartment-options')
 const incomeInput = getElementById<HTMLInputElement>('annual-gross-income')
+const taxTableInputs = Array.from(
+  document.querySelectorAll<HTMLInputElement>('input[name="tax-table-mode"]'),
+)
 const growthInput = getElementById<HTMLInputElement>('growth-rate')
 const equityInput = getElementById<HTMLInputElement>('equity-amount')
 const shareStatus = getElementById<HTMLElement>('share-status')
@@ -426,19 +579,35 @@ const resetConfigButton = getElementById<HTMLButtonElement>('reset-config')
 const copyConfigButton = getElementById<HTMLButtonElement>('copy-config')
 const copyDashboardButton = getElementById<HTMLButtonElement>('copy-dashboard-link')
 const copyScenarioButton = getElementById<HTMLButtonElement>('copy-scenario-link')
-const downloadLiquidityPdfButton = getElementById<HTMLButtonElement>('download-liquidity-pdf')
+const heroSlideshow = getElementById<HTMLDivElement>('hero-slideshow')
+const heroSlideImage = getElementById<HTMLImageElement>('hero-slide-image')
+const heroSlideCaption = getElementById<HTMLElement>('hero-slide-caption')
+const heroSlidePrevButton = getElementById<HTMLButtonElement>('hero-slide-prev')
+const heroSlideNextButton = getElementById<HTMLButtonElement>('hero-slide-next')
+const liquidityModal = getElementById<HTMLDivElement>('liquidity-modal')
+const liquidityModalContent = getElementById<HTMLDivElement>('liquidity-modal-content')
+const liquidityModalCloseButton = getElementById<HTMLButtonElement>('liquidity-modal-close')
+const liquidityModalCycleButton = getElementById<HTMLButtonElement>('liquidity-modal-cycle')
 
 let selectedApartmentId: ApartmentId = config.defaultApartmentId
+let selectedTaxTableMode: TaxTableMode = 'grund'
 let annualGrossIncome = config.defaultAnnualGrossIncome
 let annualGrowthRatePercent = assumptions.annualGrowthRate * 100
 let investedEquity = getDefaultEquityForApartment(selectedApartmentId)
 let liquidityViewMode: LiquidityViewMode = 'afterTaxChart'
+let heroSlideIndex = 0
+let heroSlideIntervalId: number | null = null
+let latestProjectionResult: ProjectionResult | null = null
+let isLiquidityModalOpen = false
 
 hydrateStateFromUrl()
 renderApartmentCards()
+renderTaxTableSelection()
 writeInputValue(annualGrossIncome)
 writeGrowthInputValue(annualGrowthRatePercent)
 writeEquityInputValue(investedEquity)
+renderHeroSlide()
+startHeroAutoplay()
 if (hasStoredConfig()) {
   setConfigStatus('Lokale Konfigurationsaenderungen sind aktiv.')
 }
@@ -451,6 +620,17 @@ incomeInput.addEventListener('input', () => {
     config.incomeBounds.max,
   )
   renderProjection()
+})
+
+taxTableInputs.forEach((input) => {
+  input.addEventListener('change', () => {
+    if (!isTaxTableMode(input.value)) {
+      return
+    }
+    selectedTaxTableMode = input.value
+    renderTaxTableSelection()
+    renderProjection()
+  })
 })
 
 growthInput.addEventListener('input', () => {
@@ -484,6 +664,7 @@ copyDashboardButton.addEventListener('click', async () => {
 copyScenarioButton.addEventListener('click', async () => {
   const scenarioUrl = buildScenarioUrl(
     selectedApartmentId,
+    selectedTaxTableMode,
     annualGrossIncome,
     annualGrowthRatePercent,
     investedEquity,
@@ -496,11 +677,48 @@ copyScenarioButton.addEventListener('click', async () => {
   )
 })
 
-downloadLiquidityPdfButton.addEventListener('click', () => {
-  const apartment = getApartment(selectedApartmentId)
-  const annualGrowthRate = annualGrowthRatePercent / 100
-  const result = calculateProjection(apartment, annualGrossIncome, annualGrowthRate, investedEquity)
-  downloadLiquidityPdf(result)
+heroSlidePrevButton.addEventListener('click', () => {
+  shiftHeroSlide(-1)
+  restartHeroAutoplay()
+})
+
+heroSlideNextButton.addEventListener('click', () => {
+  shiftHeroSlide(1)
+  restartHeroAutoplay()
+})
+
+heroSlideshow.addEventListener('mouseenter', stopHeroAutoplay)
+heroSlideshow.addEventListener('mouseleave', startHeroAutoplay)
+heroSlideshow.addEventListener('focusin', stopHeroAutoplay)
+heroSlideshow.addEventListener('focusout', startHeroAutoplay)
+
+liquidityModalCloseButton.addEventListener('click', () => {
+  closeLiquidityModal()
+})
+
+liquidityModalCycleButton.addEventListener('click', () => {
+  advanceLiquidityView()
+  closeLiquidityModal()
+  renderProjection()
+})
+
+liquidityModal.addEventListener('click', (event) => {
+  const target = event.target
+  if (!(target instanceof HTMLElement)) {
+    return
+  }
+  const closeTrigger = target.closest<HTMLElement>('[data-liquidity-modal-close="true"]')
+  if (!closeTrigger) {
+    return
+  }
+  closeLiquidityModal()
+})
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !isLiquidityModalOpen) {
+    return
+  }
+  closeLiquidityModal()
 })
 
 liquidityViewPrevButton.addEventListener('click', () => {
@@ -516,6 +734,11 @@ liquidityViewNextButton.addEventListener('click', () => {
 liquidityViewContent.addEventListener('click', (event) => {
   const target = event.target
   if (!(target instanceof HTMLElement)) {
+    return
+  }
+  const openTableTrigger = target.closest<HTMLElement>('[data-liquidity-open-table="true"]')
+  if (openTableTrigger && latestProjectionResult) {
+    openLiquidityModal(latestProjectionResult)
     return
   }
   const trigger = target.closest<HTMLElement>('[data-liquidity-cycle="true"]')
@@ -576,7 +799,7 @@ function renderApartmentCards(): void {
           aria-pressed="${apartment.id === selectedApartmentId}"
         >
           <div class="apartment-image-wrap">
-            <img src="${apartment.image}" alt="Grundriss ${apartment.label}" />
+            <img src="${resolvePublicAssetPath(apartment.image)}" alt="Grundriss ${apartment.label}" />
           </div>
           <div class="apartment-info">
             ${apartmentHint}
@@ -603,7 +826,14 @@ function renderApartmentCards(): void {
 function renderProjection(): void {
   const apartment = getApartment(selectedApartmentId)
   const annualGrowthRate = annualGrowthRatePercent / 100
-  const result = calculateProjection(apartment, annualGrossIncome, annualGrowthRate, investedEquity)
+  const result = calculateProjection(
+    apartment,
+    annualGrossIncome,
+    annualGrowthRate,
+    investedEquity,
+    selectedTaxTableMode,
+  )
+  latestProjectionResult = result
 
   setText('result-headline', `Dein moegliches Vermoegen nach ${projectionYears} Jahren mit ${apartment.label}`)
   setText('out-wealth20', formatCurrency(result.wealth20))
@@ -627,6 +857,7 @@ function renderProjection(): void {
     'out-tax-rate',
     `${formatCurrency(result.annualTax)} p.a. | Grenzsteuersatz ${formatPercent(result.marginalTaxRate * 100)} %`,
   )
+  setText('out-tax-label', `Steuer laut ${getTaxTableLabel(result.taxTableMode)}`)
   setText('out-refinance-debt', formatCurrency(result.refinanceDebtBase))
 
   renderLiquidityView(result)
@@ -639,13 +870,14 @@ function calculateProjection(
   grossAnnualIncome: number,
   annualGrowthRate: number,
   selectedEquity: number,
+  taxTableMode: TaxTableMode,
 ): ProjectionResult {
   const annualBaseRent = apartment.size * assumptions.rentPerSqm * 12
   const annualManagementCostsFull = assumptions.monthlyManagementFlat * 12
   const annualMaintenanceCostsFull = assumptions.monthlyMaintenanceFlat * 12
   const taxableIncome = grossAnnualIncome * 0.8
-  const annualTax = calculateGrundtabelleTax(taxableIncome)
-  const marginalTaxRate = calculateMarginalTaxRate(taxableIncome)
+  const annualTax = calculateAnnualIncomeTax(taxableIncome, taxTableMode)
+  const marginalTaxRate = calculateMarginalTaxRate(taxableIncome, taxTableMode)
 
   const ancillaryCosts = apartment.purchasePrice * assumptions.ancillaryCostRate
   const totalInvestment = apartment.purchasePrice + ancillaryCosts
@@ -803,6 +1035,7 @@ function calculateProjection(
 
   return {
     apartment,
+    taxTableMode,
     annualGrossIncome: grossAnnualIncome,
     annualTax,
     marginalTaxRate,
@@ -865,10 +1098,12 @@ function renderLiquidityView(result: ProjectionResult): void {
   )
 
   if (liquidityViewMode === 'table') {
-    liquidityViewContent.innerHTML = renderLiquidityTable(result)
+    liquidityViewContent.innerHTML = renderLiquidityTablePreview(result)
+    openLiquidityModal(result)
     return
   }
 
+  closeLiquidityModal()
   const basis = liquidityViewMode === 'afterTaxChart' ? 'afterTax' : 'beforeTax'
   liquidityViewContent.innerHTML = renderLiquidityChart(result, basis)
 }
@@ -930,6 +1165,28 @@ function renderLiquidityChart(
   `
 }
 
+function renderLiquidityTablePreview(result: ProjectionResult): string {
+  const startYear = result.yearlyLiquidityRows[0]?.calendarYear ?? assumptions.purchaseYear
+  const endYear =
+    result.yearlyLiquidityRows[result.yearlyLiquidityRows.length - 1]?.calendarYear ??
+    assumptions.purchaseYear + projectionYears - 1
+
+  return `
+    <button
+      type="button"
+      class="liquidity-table-preview"
+      data-liquidity-open-table="true"
+      aria-label="Vollbildansicht der Liquiditaetstabelle oeffnen"
+    >
+      <p class="liquidity-chart-title">Details im Vollbild ansehen</p>
+      <p class="liquidity-chart-copy">
+        ${startYear} bis ${endYear} mit allen Jahreswerten zu Miete, Zins, Tilgung, Steuer und Kumulierung.
+      </p>
+      <span class="liquidity-inline-toggle">Tabelle oeffnen</span>
+    </button>
+  `
+}
+
 function renderLiquidityTable(result: ProjectionResult): string {
   let cumulativeAfterTax = 0
 
@@ -959,22 +1216,8 @@ function renderLiquidityTable(result: ProjectionResult): string {
     .join('')
 
   return `
-    <div class="liquidity-table-card">
-      <div class="liquidity-table-head">
-        <div>
-          <p class="liquidity-chart-title">Details je Jahr</p>
-          <p class="liquidity-chart-copy">Dieselben Jahreswerte, aus denen die Diagramme berechnet werden.</p>
-        </div>
-        <button
-          type="button"
-          class="liquidity-inline-toggle"
-          data-liquidity-cycle="true"
-          aria-label="Zur naechsten Liquiditaetsansicht wechseln"
-        >
-          Zur Grafik
-        </button>
-      </div>
-      <div class="liquidity-table-scroll">
+    <div class="liquidity-table-card liquidity-table-card-modal">
+      <div class="liquidity-table-scroll liquidity-table-scroll-modal">
         <table class="liquidity-detail-table" aria-label="Jaehrliche Einnahmen Ausgaben Details">
           <thead>
             <tr>
@@ -994,6 +1237,30 @@ function renderLiquidityTable(result: ProjectionResult): string {
       </div>
     </div>
   `
+}
+
+function openLiquidityModal(result: ProjectionResult): void {
+  liquidityModalContent.innerHTML = renderLiquidityTable(result)
+
+  if (isLiquidityModalOpen) {
+    return
+  }
+
+  liquidityModal.classList.add('liquidity-modal-open')
+  liquidityModal.setAttribute('aria-hidden', 'false')
+  document.body.classList.add('body-modal-open')
+  isLiquidityModalOpen = true
+}
+
+function closeLiquidityModal(): void {
+  if (!isLiquidityModalOpen) {
+    return
+  }
+
+  liquidityModal.classList.remove('liquidity-modal-open')
+  liquidityModal.setAttribute('aria-hidden', 'true')
+  document.body.classList.remove('body-modal-open')
+  isLiquidityModalOpen = false
 }
 
 function advanceLiquidityView(): void {
@@ -1039,6 +1306,9 @@ function syncUrlState(): void {
   if (selectedApartmentId !== config.defaultApartmentId) {
     params.set('apartment', selectedApartmentId)
   }
+  if (selectedTaxTableMode !== 'grund') {
+    params.set('tax', selectedTaxTableMode)
+  }
   if (annualGrossIncome !== config.defaultAnnualGrossIncome) {
     params.set('gross', String(Math.round(annualGrossIncome)))
   }
@@ -1060,6 +1330,10 @@ function hydrateStateFromUrl(): void {
   const apartment = params.get('apartment')
   if (apartment && isApartmentId(apartment) && apartments.some((entry) => entry.id === apartment)) {
     selectedApartmentId = apartment
+  }
+  const tax = params.get('tax')
+  if (tax && isTaxTableMode(tax)) {
+    selectedTaxTableMode = tax
   }
   investedEquity = getDefaultEquityForApartment(selectedApartmentId)
 
@@ -1093,12 +1367,14 @@ function hydrateStateFromUrl(): void {
 
 function buildScenarioUrl(
   apartmentId: ApartmentId,
+  taxTableMode: TaxTableMode,
   grossAnnualIncomeValue: number,
   growthRatePercent: number,
   equityAmount: number,
 ): string {
   const params = new URLSearchParams()
   params.set('apartment', apartmentId)
+  params.set('tax', taxTableMode)
   params.set('gross', String(Math.round(grossAnnualIncomeValue)))
   params.set('growth', String(growthRatePercent))
   params.set('equity', String(Math.round(equityAmount)))
@@ -1123,6 +1399,50 @@ function writeEquityInputValue(value: number): void {
 
 function setStatus(message: string): void {
   shareStatus.textContent = message
+}
+
+function renderTaxTableSelection(): void {
+  taxTableInputs.forEach((input) => {
+    input.checked = input.value === selectedTaxTableMode
+  })
+}
+
+function renderHeroSlide(): void {
+  const slide = heroSlides[heroSlideIndex]
+  heroSlideImage.src = resolvePublicAssetPath(slide.image)
+  heroSlideImage.alt = slide.alt
+  heroSlideCaption.textContent = slide.caption
+}
+
+function shiftHeroSlide(step: number): void {
+  const slideCount = heroSlides.length
+  if (slideCount === 0) {
+    return
+  }
+  heroSlideIndex = (heroSlideIndex + step + slideCount) % slideCount
+  renderHeroSlide()
+}
+
+function startHeroAutoplay(): void {
+  if (heroSlideIntervalId !== null || heroSlides.length < 2) {
+    return
+  }
+  heroSlideIntervalId = window.setInterval(() => {
+    shiftHeroSlide(1)
+  }, 6000)
+}
+
+function stopHeroAutoplay(): void {
+  if (heroSlideIntervalId === null) {
+    return
+  }
+  window.clearInterval(heroSlideIntervalId)
+  heroSlideIntervalId = null
+}
+
+function restartHeroAutoplay(): void {
+  stopHeroAutoplay()
+  startHeroAutoplay()
 }
 
 function getApartment(apartmentId: ApartmentId): ApartmentOption {
@@ -1185,12 +1505,24 @@ function calculateGrundtabelleTax(taxableIncome: number): number {
   return 0.45 * zve - 18936.88
 }
 
-function calculateMarginalTaxRate(taxableIncome: number): number {
+function calculateAnnualIncomeTax(taxableIncome: number, taxTableMode: TaxTableMode): number {
+  const zve = Math.max(taxableIncome, 0)
+  if (taxTableMode === 'splitting') {
+    return 2 * calculateGrundtabelleTax(zve / 2)
+  }
+  return calculateGrundtabelleTax(zve)
+}
+
+function calculateMarginalTaxRate(taxableIncome: number, taxTableMode: TaxTableMode): number {
   const base = Math.max(taxableIncome, 0)
   const delta = 1
-  const taxBase = calculateGrundtabelleTax(base)
-  const taxUp = calculateGrundtabelleTax(base + delta)
+  const taxBase = calculateAnnualIncomeTax(base, taxTableMode)
+  const taxUp = calculateAnnualIncomeTax(base + delta, taxTableMode)
   return Math.max((taxUp - taxBase) / delta, 0)
+}
+
+function getTaxTableLabel(mode: TaxTableMode): string {
+  return mode === 'splitting' ? 'Splittingtabelle' : 'Grundtabelle'
 }
 
 function getDefaultEquityForApartment(apartmentId: ApartmentId): number {
@@ -1216,66 +1548,6 @@ function getRentShareForProjectionYear(year: number): number {
     return 1
   }
   return (5 - assumptions.rentStartQuarter) / 4
-}
-
-function downloadLiquidityPdf(result: ProjectionResult): void {
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-  let y = 40
-  const left = 40
-  const lineHeight = 14
-
-  doc.setFontSize(14)
-  doc.text('Liquiditaetsrechnung', left, y)
-  y += 20
-
-  doc.setFontSize(10)
-  doc.text(`Objekt: ${result.apartment.label}`, left, y)
-  y += lineHeight
-  doc.text(`Bruttojahreseinkommen: ${formatCurrency(result.annualGrossIncome)}`, left, y)
-  y += lineHeight
-  doc.text(
-    `Steuer (Grundtabelle): ${formatCurrency(result.annualTax)} | Grenzsteuersatz ${formatPercent(result.marginalTaxRate * 100)} %`,
-    left,
-    y,
-  )
-  y += lineHeight + 6
-
-  for (const row of result.yearlyLiquidityRows) {
-    if (y > 760) {
-      doc.addPage()
-      y = 40
-    }
-
-    doc.setFontSize(11)
-    doc.text(`Jahr ${row.calendarYear}`, left, y)
-    y += lineHeight
-
-    doc.setFontSize(9)
-    const lines = [
-      `Objektwert: ${formatCurrency(row.propertyValue)} | Restschuld: ${formatCurrency(row.remainingDebt)} | Nettovermoegen: ${formatCurrency(row.netWealth)}`,
-      `Miete brutto: ${formatCurrency(row.grossRent)} | Leerstand: ${formatCurrency(row.vacancyCost)} | Verwaltung: ${formatCurrency(row.managementCost)} | Instandhaltung: ${formatCurrency(row.maintenanceCost)}`,
-      `NOI vor Finanzierung: ${formatCurrency(row.netBeforeDebt)} | Steuerentlastung: ${formatCurrency(row.taxBenefit)}`,
-      `KfW Zins/Tilgung: ${formatCurrency(row.kfwInterest)} / ${formatCurrency(row.kfwPrincipal)} | Bank Zins/Tilgung: ${formatCurrency(row.bankInterest)} / ${formatCurrency(row.bankPrincipal)}`,
-      `Refi Zins/Tilgung: ${formatCurrency(row.refinanceInterest)} / ${formatCurrency(row.refinancePrincipal)} | Kapitaldienst gesamt: ${formatCurrency(row.debtService)}`,
-      `Jahres-Cashflow: ${formatSignedCurrency(row.cashflow)} | Kumulierter Cashflow: ${formatSignedCurrency(row.cumulativeCashflow)}`,
-    ]
-
-    for (const line of lines) {
-      const wrapped = doc.splitTextToSize(line, 515)
-      for (const wrappedLine of wrapped) {
-        if (y > 780) {
-          doc.addPage()
-          y = 40
-        }
-        doc.text(wrappedLine, left, y)
-        y += lineHeight
-      }
-    }
-
-    y += 8
-  }
-
-  doc.save(`liquiditaetsrechnung-${result.apartment.id}.pdf`)
 }
 
 function buildConfigSections(): ConfigSection[] {
@@ -2376,6 +2648,10 @@ function isApartmentId(value: string): value is ApartmentId {
   return value === 'a' || value === 'b'
 }
 
+function isTaxTableMode(value: string): value is TaxTableMode {
+  return value === 'grund' || value === 'splitting'
+}
+
 function formatCurrency(value: number): string {
   return currency.format(value)
 }
@@ -2523,4 +2799,14 @@ function getElementById<T extends HTMLElement>(id: string): T {
     throw new Error(`Missing element "${id}".`)
   }
   return element as T
+}
+
+function resolvePublicAssetPath(path: string): string {
+  if (/^https?:\/\//.test(path)) {
+    return path
+  }
+  const base = import.meta.env.BASE_URL || '/'
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path
+  return `${normalizedBase}${normalizedPath}`
 }
