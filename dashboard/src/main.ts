@@ -39,6 +39,9 @@ type Assumptions = {
   kfwGrantAmount: number
   bankInterestRate: number
   bankRepaymentRate: number
+  zinsbindungJahre: number
+  refinanceInterestRate: number
+  refinanceRepaymentRate: number
   monumentShare: number
   annualGrowthRate: number
   years: number
@@ -150,12 +153,18 @@ type ProjectionResult = {
   constructionPhaseMonthlyLiquidity: number
   afaPhaseOneMonthlyLiquidity: number
   afaPhaseTwoMonthlyLiquidity: number
+  afaCombinedMonthlyLiquidity: number
   postAfaMonthlyLiquidity: number
+  afaTotalYears: number
   refinanceDebtBase: number
   grossYield: number
   netYieldBeforeDebt: number
   yearlyWealthPath: number[]
   yearlyLiquidityRows: YearlyLiquidityRow[]
+  depotReturnRate: number
+  depotWealth20: number
+  yearlyDepotPath: number[]
+  finalRemainingDebt: number
 }
 
 type LiquidityViewMode = 'afterTaxChart' | 'beforeTaxChart' | 'table'
@@ -176,8 +185,7 @@ const assumptions = config.assumptions
 const projectionYears = assumptions.years
 const growthBounds = { min: -2, max: 5, step: 0.1 }
 const equityBounds = { min: 0, max: 30000, step: 500 }
-const refinanceInterestRate = 0.03
-const refinanceRepaymentRate = 0.02
+const depotBounds = { min: 0, max: 12, step: 0.1 }
 const CONSULTATION_EMAIL = 'andreas.peters@mlp.de'
 const MAPS_URL = 'https://maps.app.goo.gl/t3fVRBvNyz42xWMp7'
 const heroSlides: HeroSlide[] = [
@@ -214,7 +222,7 @@ app.innerHTML = `
           <p class="config-panel-title">Rechenparameter</p>
           <p class="config-panel-copy">
             Zins, Tilgung, Kaufpreis und Steuerannahmen direkt im UI anpassen. Änderungen gelten
-            lokal in diesem Browser, bis du sie zurücksetzt.
+            lokal in diesem Browser, bis Sie sie zurücksetzen.
           </p>
         </div>
       </div>
@@ -267,10 +275,10 @@ app.innerHTML = `
       </div>
       <div class="hero-content">
         <p class="eyebrow">York Living Münster</p>
-        <h1>Dein Immobilien-Check in 60 Sekunden</h1>
+        <h1>Ihr Immobilien-Check in 60 Sekunden</h1>
         <p class="lead">
-          Wähle einen Grundriss, gib dein Bruttojahreseinkommen ein und erhalte sofort eine
-          transparente ${projectionYears}-Jahres-Prognose für dein mögliches Vermögen.
+          Wählen Sie einen Grundriss, geben Sie Ihr Bruttojahreseinkommen ein und erhalten Sie sofort eine
+          transparente ${projectionYears}-Jahres-Prognose für Ihr mögliches Vermögen.
         </p>
         <div class="hero-actions">
           <a
@@ -289,11 +297,11 @@ app.innerHTML = `
 
     <section class="workspace">
       <section class="panel choose-panel">
-        <h2>1. Wähle deine Wohnungsoption</h2>
+        <h2>1. Wählen Sie Ihre Wohnungsoption</h2>
         <div id="apartment-options" class="apartment-options"></div>
 
         <div class="income-block">
-          <h2>2. Dein Bruttojahreseinkommen</h2>
+          <h2>2. Ihr Bruttojahreseinkommen</h2>
           <div class="income-row">
             <label class="field field-income-compact" for="annual-gross-income">
               <span>Bruttojahreseinkommen (EUR)</span>
@@ -345,14 +353,38 @@ app.innerHTML = `
             />
             <strong id="out-equity-amount" class="slider-value">-</strong>
           </label>
+
+        </div>
+
+        <div class="assumption-grid">
+          <article>
+            <p class="assumption-label">Eigenkapital für Nebenkosten</p>
+            <p id="out-start-equity">-</p>
+          </article>
+          <article>
+            <p class="assumption-label">Gesamtinvestition inkl. Nebenkosten</p>
+            <p id="out-total-investment">-</p>
+          </article>
+          <article>
+            <p id="out-tax-label" class="assumption-label">Steuer laut Grundtabelle</p>
+            <p id="out-tax-rate">-</p>
+          </article>
+          <article>
+            <p class="assumption-label">Restschuld bei Anschlussfinanzierung</p>
+            <p id="out-refinance-debt">-</p>
+          </article>
         </div>
       </section>
 
       <section class="panel result-panel" aria-live="polite">
         <p class="eyebrow">3. Prognose</p>
-        <h2 id="result-headline">Dein mögliches Vermögen nach ${projectionYears} Jahren</h2>
+        <h2 id="result-headline">Ihr mögliches Vermögen nach ${projectionYears} Jahren</h2>
         <p id="out-wealth20" class="wealth-value">-</p>
         <p id="out-wealth-gain" class="wealth-subvalue">-</p>
+
+        <div id="budget-card" class="budget-card"></div>
+
+        <div id="comparison-card" class="comparison-card"></div>
 
         <div class="metric-grid">
           <article class="metric-card">
@@ -387,27 +419,15 @@ app.innerHTML = `
             <p>Vermögensentwicklung über ${projectionYears} Jahre</p>
             <p id="out-path-end">-</p>
           </div>
+          <div class="path-legend">
+            <span class="path-legend-item"><span class="path-legend-bar"></span> Immobilie</span>
+            <span class="path-legend-item"><span class="path-legend-dot"></span> Vermögensdepot</span>
+          </div>
           <div id="wealth-path" class="wealth-path"></div>
         </div>
 
-        <div class="assumption-grid">
-          <article>
-            <p class="assumption-label">Eigenkapital für Nebenkosten</p>
-            <p id="out-start-equity">-</p>
-          </article>
-          <article>
-            <p class="assumption-label">Gesamtinvestition inkl. Nebenkosten</p>
-            <p id="out-total-investment">-</p>
-          </article>
-          <article>
-            <p id="out-tax-label" class="assumption-label">Steuer laut Grundtabelle</p>
-            <p id="out-tax-rate">-</p>
-          </article>
-          <article>
-            <p class="assumption-label">Restschuld bei Refinanzierung (Ende Jahr 12)</p>
-            <p id="out-refinance-debt">-</p>
-          </article>
-        </div>
+        <div id="wealth-composition" class="wealth-composition"></div>
+
       </section>
     </section>
 
@@ -587,6 +607,7 @@ let selectedTaxTableMode: TaxTableMode = 'grund'
 let annualGrossIncome = config.defaultAnnualGrossIncome
 let annualGrowthRatePercent = assumptions.annualGrowthRate * 100
 let investedEquity = getDefaultEquityForApartment(selectedApartmentId)
+let depotReturnRatePercent = 6
 let liquidityViewMode: LiquidityViewMode = 'afterTaxChart'
 let heroSlideIndex = 0
 let heroSlideIntervalId: number | null = null
@@ -801,10 +822,11 @@ function renderProjection(): void {
     annualGrowthRate,
     investedEquity,
     selectedTaxTableMode,
+    depotReturnRatePercent / 100,
   )
   latestProjectionResult = result
 
-  setText('result-headline', `Dein mögliches Vermögen nach ${projectionYears} Jahren mit ${apartment.label}`)
+  setText('result-headline', `Ihr mögliches Vermögen nach ${projectionYears} Jahren mit ${apartment.label}`)
   setText('out-wealth20', formatCurrency(result.wealth20))
   setText(
     'out-wealth-gain',
@@ -830,8 +852,11 @@ function renderProjection(): void {
   setText('out-refinance-debt', formatCurrency(result.refinanceDebtBase))
   updateConsultationMailLink(result)
 
+  renderBudgetCard(result)
+  renderComparisonCard(result)
   renderLiquidityView(result)
-  renderWealthPath(result.yearlyWealthPath)
+  renderWealthPath(result.yearlyWealthPath, result.yearlyDepotPath)
+  renderWealthComposition(result)
   syncUrlState()
 }
 
@@ -841,7 +866,10 @@ function calculateProjection(
   annualGrowthRate: number,
   selectedEquity: number,
   taxTableMode: TaxTableMode,
+  depotReturnRate: number,
 ): ProjectionResult {
+  const refinanceInterestRate = assumptions.refinanceInterestRate
+  const refinanceRepaymentRate = assumptions.refinanceRepaymentRate
   const annualBaseRent = apartment.size * assumptions.rentPerSqm * 12
   const annualManagementCostsFull = (apartment.monthlyManagement + apartment.monthlyOtherCost) * 12
   const annualMaintenanceCostsFull = apartment.monthlyMaintenance * 12
@@ -866,6 +894,7 @@ function calculateProjection(
   const afaPhaseOneEndYear = getProjectionYearForAfaYear(getAfaPhaseOneEndYear())
   const afaEndYear = getAfaEndYear()
   const afaProjectionEndYear = getProjectionYearForAfaYear(afaEndYear)
+  const zinsbindungEndProjectionYear = assumptions.zinsbindungJahre + 1
   const constructionInterestLoad =
     (kfwLoan * 0.5) * assumptions.kfwInterestRate + (bankLoan * 0.5) * assumptions.bankInterestRate
   const constructionPhaseMonthlyLiquidity = -(constructionInterestLoad / 12)
@@ -874,7 +903,7 @@ function calculateProjection(
   let remainingBankDebt = initialBankDebt
   let remainingDebt = initialDebt
   let refinanceDebtBase = 0
-  let postAfaTargetDebtService = 0
+  let refinanceTargetDebtService = 0
   let cumulativeCashflow20 = 0
   let afaPhaseOneCashflow = 0
   let afaPhaseTwoCashflow = 0
@@ -883,7 +912,9 @@ function calculateProjection(
   let afaPhaseTwoYears = 0
   let postAfaYears = 0
   const yearlyWealthPath: number[] = []
+  const yearlyDepotPath: number[] = []
   const yearlyLiquidityRows: YearlyLiquidityRow[] = []
+  let depotBalance = startEquity
 
   for (let year = 1; year <= assumptions.years; year += 1) {
     const calendarYear = getCalendarYearForProjectionYear(year)
@@ -897,13 +928,13 @@ function calculateProjection(
     let refinanceInterest = 0
     let refinancePrincipal = 0
 
-    if (year === afaEndYear + 1) {
+    if (year === zinsbindungEndProjectionYear + 1) {
       remainingDebt = remainingKfwDebt + remainingBankDebt
       refinanceDebtBase = remainingDebt
-      postAfaTargetDebtService = remainingDebt * (refinanceInterestRate + refinanceRepaymentRate)
+      refinanceTargetDebtService = remainingDebt * (refinanceInterestRate + refinanceRepaymentRate)
     }
 
-    if (year <= afaEndYear) {
+    if (year <= zinsbindungEndProjectionYear) {
       const normalKfwInterest = remainingKfwDebt * assumptions.kfwInterestRate
       const normalKfwPrincipal =
         year <= assumptions.kfwGraceYears
@@ -930,7 +961,7 @@ function calculateProjection(
     } else {
       refinanceInterest = remainingDebt * refinanceInterestRate
       refinancePrincipal = Math.min(
-        Math.max(postAfaTargetDebtService - refinanceInterest, 0),
+        Math.max(refinanceTargetDebtService - refinanceInterest, 0),
         remainingDebt,
       )
       yearlyDebtService = refinanceInterest + refinancePrincipal
@@ -968,6 +999,10 @@ function calculateProjection(
     const yearlyValue = apartment.purchasePrice * Math.pow(1 + annualGrowthRate, year)
     const yearlyNetWealth = yearlyValue - remainingDebt + cumulativeCashflow20
     yearlyWealthPath.push(yearlyNetWealth)
+
+    depotBalance = depotBalance * (1 + depotReturnRate) + (-yearlyCashflow)
+    yearlyDepotPath.push(depotBalance)
+
     yearlyLiquidityRows.push({
       year,
       calendarYear,
@@ -1004,6 +1039,9 @@ function calculateProjection(
   const afaPhaseTwoMonthlyLiquidity =
     afaPhaseTwoYears > 0 ? afaPhaseTwoCashflow / (afaPhaseTwoYears * 12) : 0
   const postAfaMonthlyLiquidity = postAfaYears > 0 ? postAfaCashflow / (postAfaYears * 12) : 0
+  const afaTotalYears = afaPhaseOneYears + afaPhaseTwoYears
+  const afaCombinedMonthlyLiquidity =
+    afaTotalYears > 0 ? (afaPhaseOneCashflow + afaPhaseTwoCashflow) / (afaTotalYears * 12) : 0
 
   return {
     apartment,
@@ -1023,28 +1061,145 @@ function calculateProjection(
     constructionPhaseMonthlyLiquidity,
     afaPhaseOneMonthlyLiquidity,
     afaPhaseTwoMonthlyLiquidity,
+    afaCombinedMonthlyLiquidity,
     postAfaMonthlyLiquidity,
+    afaTotalYears,
     refinanceDebtBase,
     grossYield,
     netYieldBeforeDebt,
     yearlyWealthPath,
     yearlyLiquidityRows,
+    depotReturnRate,
+    depotWealth20: depotBalance,
+    yearlyDepotPath,
+    finalRemainingDebt: remainingDebt,
   }
 }
 
-function renderWealthPath(values: number[]): void {
-  const pathElement = getElementById<HTMLDivElement>('wealth-path')
-  const maxAbs = Math.max(...values.map((value) => Math.abs(value)), 1)
-  pathElement.style.setProperty('--year-count', String(values.length))
+function renderBudgetCard(result: ProjectionResult): void {
+  const el = getElementById<HTMLDivElement>('budget-card')
+  const mainValue = result.afaCombinedMonthlyLiquidity
+  const postAfa = result.postAfaMonthlyLiquidity
+  const afaYears = result.afaTotalYears
 
-  pathElement.innerHTML = values
+  const toneClass = mainValue >= 0 ? 'tone-positive' : 'tone-negative'
+
+  const summary = mainValue >= 0
+    ? `Sie erhalten in den ersten ${afaYears} Jahren einen monatlichen Ertrag und bauen gleichzeitig ein Vermögen von ${formatCurrency(result.wealth20)} auf.`
+    : `Für nur ${formatCurrency(Math.abs(mainValue))} im Monat bauen Sie ein Vermögen von ${formatCurrency(result.wealth20)} auf.`
+
+  el.innerHTML = `
+    <p class="budget-label">Mittlerer mtl. Aufwand nach Steuern</p>
+    <span class="budget-hero ${toneClass}">${formatSignedCurrency(mainValue)} / Monat</span>
+    <p class="budget-summary">${summary}</p>
+    <p class="budget-footnote">AfA Jahr 1–${afaYears}. Ab Jahr ${afaYears + 1} ohne Denkmal-AfA: ca. ${formatSignedCurrency(postAfa)}/Monat.</p>
+  `
+}
+
+function renderComparisonCard(result: ProjectionResult): void {
+  const el = getElementById<HTMLDivElement>('comparison-card')
+  const propertyWins = result.wealth20 >= result.depotWealth20
+  const diff = result.wealth20 - result.depotWealth20
+  const existingSlider = el.querySelector<HTMLInputElement>('#depot-return-rate-inline')
+
+  if (!existingSlider) {
+    el.innerHTML = `
+      <p class="comparison-title">Immobilie vs. Vermögensdepot nach ${projectionYears} Jahren</p>
+      <div class="comparison-columns">
+        <div id="comp-col-property" class="comparison-col">
+          <p class="comparison-label">Immobilie</p>
+          <p id="comp-val-property" class="comparison-value">-</p>
+        </div>
+        <div class="comparison-vs">vs.</div>
+        <div id="comp-col-depot" class="comparison-col">
+          <p class="comparison-label">Vermögensdepot</p>
+          <p id="comp-val-depot" class="comparison-value">-</p>
+        </div>
+      </div>
+      <p id="comp-note" class="comparison-note">-</p>
+      <label class="comparison-slider-label" for="depot-return-rate-inline">
+        <span>Depot-Rendite: <strong id="out-depot-return-inline">-</strong></span>
+        <input
+          id="depot-return-rate-inline"
+          class="comparison-slider"
+          type="range"
+          min="${depotBounds.min}"
+          max="${depotBounds.max}"
+          step="${depotBounds.step}"
+          value="${depotReturnRatePercent}"
+        />
+      </label>
+    `
+    el.querySelector<HTMLInputElement>('#depot-return-rate-inline')!.addEventListener('input', (e) => {
+      const slider = e.target as HTMLInputElement
+      depotReturnRatePercent = clamp(
+        parseNumber(slider.value, depotReturnRatePercent),
+        depotBounds.min,
+        depotBounds.max,
+      )
+      renderProjection()
+    })
+  }
+
+  const propCol = el.querySelector('#comp-col-property')!
+  const depotCol = el.querySelector('#comp-col-depot')!
+  propCol.classList.toggle('comparison-winner', propertyWins)
+  depotCol.classList.toggle('comparison-winner', !propertyWins)
+
+  setText('comp-val-property', formatCurrency(result.wealth20))
+  setText('comp-val-depot', formatCurrency(result.depotWealth20))
+  setText('out-depot-return-inline', `${formatPercent(depotReturnRatePercent)} % p.a.`)
+
+  const noteEl = getElementById<HTMLElement>('comp-note')
+  noteEl.className = `comparison-note ${diff >= 0 ? 'tone-positive' : 'tone-negative'}`
+  noteEl.textContent = `${diff >= 0 ? '+' : ''}${formatCurrency(diff)} ${diff >= 0 ? 'Vorteil Immobilie (Hebeleffekt)' : 'Vorteil Vermögensdepot'}`
+}
+
+function renderWealthComposition(result: ProjectionResult): void {
+  const el = getElementById<HTMLDivElement>('wealth-composition')
+  const rows = [
+    { label: `Objektwert in ${projectionYears} Jahren`, value: result.projectedValue20 },
+    { label: 'Kumulierter Cashflow', value: result.cumulativeCashflow20 },
+    { label: 'Restschuld', value: -result.finalRemainingDebt },
+  ]
+
+  el.innerHTML = `
+    <p class="composition-title">Woraus besteht Ihr Vermögen?</p>
+    <div class="composition-rows">
+      ${rows
+        .map(
+          (row) => `
+        <div class="composition-row">
+          <span>${row.label}</span>
+          <span class="${getToneClass(row.value)}">${formatSignedCurrency(row.value)}</span>
+        </div>`,
+        )
+        .join('')}
+      <div class="composition-row composition-total">
+        <span>Nettovermögen</span>
+        <span>${formatCurrency(result.wealth20)}</span>
+      </div>
+    </div>
+  `
+}
+
+function renderWealthPath(propertyValues: number[], depotValues: number[]): void {
+  const pathElement = getElementById<HTMLDivElement>('wealth-path')
+  const allValues = [...propertyValues, ...depotValues]
+  const maxAbs = Math.max(...allValues.map((value) => Math.abs(value)), 1)
+  pathElement.style.setProperty('--year-count', String(propertyValues.length))
+
+  pathElement.innerHTML = propertyValues
     .map((value, index) => {
       const height = Math.max((Math.abs(value) / maxAbs) * 100, 3)
       const toneClass = value >= 0 ? 'path-bar-positive' : 'path-bar-negative'
+      const depotValue = depotValues[index] ?? 0
+      const depotHeight = Math.max((Math.abs(depotValue) / maxAbs) * 100, 1)
       return `
-        <div class="path-col" title="Jahr ${index + 1}: ${formatCurrency(value)}">
+        <div class="path-col" title="Jahr ${index + 1}: Immobilie ${formatCurrency(value)} | Depot ${formatCurrency(depotValue)}">
           <span class="path-bar-wrap">
             <span class="path-bar ${toneClass}" style="height: ${height.toFixed(2)}%"></span>
+            <span class="path-depot-marker" style="bottom: ${depotHeight.toFixed(2)}%"></span>
           </span>
           <span class="path-year">${index + 1}</span>
         </div>
@@ -1285,6 +1440,9 @@ function syncUrlState(): void {
   if (investedEquity !== getDefaultEquityForApartment(selectedApartmentId)) {
     params.set('equity', String(Math.round(investedEquity)))
   }
+  if (depotReturnRatePercent !== 6) {
+    params.set('depot', String(depotReturnRatePercent))
+  }
 
   const query = params.toString()
   const nextUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname
@@ -1330,6 +1488,16 @@ function hydrateStateFromUrl(): void {
       equityBounds.max,
     )
   }
+
+  const depot = params.get('depot')
+  if (depot) {
+    depotReturnRatePercent = clamp(
+      parseNumber(depot, depotReturnRatePercent),
+      depotBounds.min,
+      depotBounds.max,
+    )
+  }
+
 }
 
 function buildScenarioUrl(
@@ -1646,6 +1814,48 @@ function buildConfigSections(): ConfigSection[] {
           get: (value) => value.assumptions.bankRepaymentRate,
           set: (value, next) => {
             value.assumptions.bankRepaymentRate = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-zinsbindung-jahre',
+          label: 'Zinsbindung (Jahre)',
+          hint: 'Dauer der Zinsbindung ab Kaufjahr.',
+          mode: 'number',
+          min: 5,
+          max: 20,
+          step: 1,
+          get: (value) => value.assumptions.zinsbindungJahre,
+          set: (value, next) => {
+            value.assumptions.zinsbindungJahre = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-refinance-interest-rate',
+          label: 'Anschlusszins',
+          hint: 'Zinssatz nach Auslauf der Zinsbindung.',
+          mode: 'percent',
+          min: 0,
+          max: 15,
+          step: 0.05,
+          get: (value) => value.assumptions.refinanceInterestRate,
+          set: (value, next) => {
+            value.assumptions.refinanceInterestRate = next
+          },
+        },
+        {
+          type: 'number',
+          id: 'config-refinance-repayment-rate',
+          label: 'Anschlusstilgung',
+          hint: 'Tilgungssatz nach Auslauf der Zinsbindung.',
+          mode: 'percent',
+          min: 0,
+          max: 15,
+          step: 0.05,
+          get: (value) => value.assumptions.refinanceRepaymentRate,
+          set: (value, next) => {
+            value.assumptions.refinanceRepaymentRate = next
           },
         },
       ],
@@ -2410,6 +2620,18 @@ function validateConfig(candidate: unknown): CalculationConfig {
     bankRepaymentRate: asNumber(
       assumptionsCandidate.bankRepaymentRate,
       'assumptions.bankRepaymentRate',
+    ),
+    zinsbindungJahre: asNumber(
+      assumptionsCandidate.zinsbindungJahre,
+      'assumptions.zinsbindungJahre',
+    ),
+    refinanceInterestRate: asNumber(
+      assumptionsCandidate.refinanceInterestRate,
+      'assumptions.refinanceInterestRate',
+    ),
+    refinanceRepaymentRate: asNumber(
+      assumptionsCandidate.refinanceRepaymentRate,
+      'assumptions.refinanceRepaymentRate',
     ),
     monumentShare: asNumber(assumptionsCandidate.monumentShare, 'assumptions.monumentShare'),
     annualGrowthRate: asNumber(

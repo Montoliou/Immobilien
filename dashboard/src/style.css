@@ -1289,6 +1289,218 @@ p {
   background: #7f919c;
 }
 
+/* Budget Card */
+
+.budget-card {
+  padding: var(--space-24);
+  border-radius: var(--radius-12);
+  border: 1px solid var(--base-2);
+  background: #f8fafb;
+}
+
+.budget-label {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-8);
+}
+
+.budget-hero {
+  display: block;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 800;
+  margin-bottom: var(--space-8);
+}
+
+.budget-summary {
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin-bottom: var(--space-8);
+}
+
+.budget-footnote {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  opacity: 0.75;
+}
+
+/* Comparison Card */
+
+.comparison-card {
+  padding: var(--space-24);
+  border-radius: var(--radius-12);
+  border: 1px solid var(--base-2);
+  background: #f8fafb;
+}
+
+.comparison-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: var(--space-16);
+}
+
+.comparison-columns {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-16);
+  align-items: center;
+  margin-bottom: var(--space-16);
+}
+
+.comparison-col {
+  text-align: center;
+  padding: var(--space-16);
+  border-radius: var(--radius-12);
+  border: 2px solid var(--base-2);
+  background: var(--base-1);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.comparison-winner {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgb(47 79 95 / 15%);
+}
+
+.comparison-label {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--space-8);
+}
+
+.comparison-value {
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  font-weight: 800;
+  color: var(--ink-strong);
+  transition: color 0.3s ease;
+}
+
+.comparison-winner .comparison-value {
+  color: var(--accent);
+}
+
+.comparison-vs {
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.comparison-note {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.comparison-slider-label {
+  display: grid;
+  gap: 4px;
+  margin-top: var(--space-16);
+  padding-top: var(--space-16);
+  border-top: 1px solid var(--base-2);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.comparison-slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+/* Wealth Composition */
+
+.wealth-composition {
+  padding: var(--space-24);
+  border-radius: var(--radius-12);
+  border: 1px solid var(--base-2);
+  background: #f8fafb;
+}
+
+.composition-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: var(--space-16);
+}
+
+.composition-rows {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.composition-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--base-2);
+}
+
+.composition-row span:last-child {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.composition-total {
+  border-bottom: none;
+  border-top: 2px solid var(--ink-strong);
+  padding-top: 12px;
+  margin-top: 4px;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+/* Wealth Path Legend */
+
+.path-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.path-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.path-legend-bar {
+  display: inline-block;
+  width: 12px;
+  height: 10px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.path-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #c8965a;
+  border: 2px solid #a07240;
+  border-radius: 50%;
+}
+
+/* Depot Overlay Marker in Wealth Path */
+
+.path-bar-wrap {
+  position: relative;
+}
+
+.path-depot-marker {
+  position: absolute;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  background: #c8965a;
+  border: 2px solid #a07240;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgb(200 150 90 / 40%);
+  pointer-events: none;
+  z-index: 2;
+  transform: translateY(50%);
+}
+
 @media (max-width: 1100px) {
   .hero {
     grid-template-columns: 1fr;
@@ -1390,5 +1602,14 @@ p {
   .facts-grid,
   .config-grid {
     grid-template-columns: 1fr;
+  }
+
+  .comparison-columns {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .comparison-vs {
+    display: none;
   }
 }
