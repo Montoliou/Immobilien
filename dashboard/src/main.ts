@@ -356,24 +356,6 @@ app.innerHTML = `
 
         </div>
 
-        <div class="assumption-grid">
-          <article>
-            <p class="assumption-label">Eigenkapital für Nebenkosten</p>
-            <p id="out-start-equity">-</p>
-          </article>
-          <article>
-            <p class="assumption-label">Gesamtinvestition inkl. Nebenkosten</p>
-            <p id="out-total-investment">-</p>
-          </article>
-          <article>
-            <p id="out-tax-label" class="assumption-label">Steuer laut Grundtabelle</p>
-            <p id="out-tax-rate">-</p>
-          </article>
-          <article>
-            <p class="assumption-label">Restschuld bei Anschlussfinanzierung</p>
-            <p id="out-refinance-debt">-</p>
-          </article>
-        </div>
       </section>
 
       <section class="panel result-panel" aria-live="polite">
@@ -382,19 +364,19 @@ app.innerHTML = `
         <p id="out-wealth20" class="wealth-value">-</p>
         <p id="out-wealth-gain" class="wealth-subvalue">-</p>
 
-        <div id="budget-card" class="budget-card"></div>
+        <div class="result-primary">
+          <div id="budget-card" class="budget-card"></div>
 
-        <div id="comparison-card" class="comparison-card"></div>
-
-        <div class="metric-grid">
-          <article class="metric-card">
-            <p class="metric-label">Objektwert in ${projectionYears} Jahren</p>
-            <p id="out-object-value" class="metric-value">-</p>
-          </article>
-          <article class="metric-card">
-            <p class="metric-label">Kumulierter Cashflow (${projectionYears} Jahre)</p>
-            <p id="out-cashflow20" class="metric-value">-</p>
-          </article>
+          <div class="metric-grid">
+            <article class="metric-card">
+              <p class="metric-label">Objektwert in ${projectionYears} Jahren</p>
+              <p id="out-object-value" class="metric-value">-</p>
+            </article>
+            <article class="metric-card">
+              <p class="metric-label">Restschuld in ${projectionYears} Jahren</p>
+              <p id="out-final-debt" class="metric-value">-</p>
+            </article>
+          </div>
         </div>
 
         <div class="liquidity-block">
@@ -415,18 +397,62 @@ app.innerHTML = `
         </div>
 
         <div class="progress-wrap">
-          <div class="progress-meta">
-            <p>Vermögensentwicklung über ${projectionYears} Jahre</p>
-            <p id="out-path-end">-</p>
-          </div>
-          <div class="path-legend">
-            <span class="path-legend-item"><span class="path-legend-bar"></span> Immobilie</span>
-            <span class="path-legend-item"><span class="path-legend-dot"></span> Vermögensdepot</span>
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Vermögensentwicklung</p>
+              <h3 class="section-title">Nettovermögen aus der Immobilie</h3>
+            </div>
+            <p id="out-path-end" class="section-value">-</p>
           </div>
           <div id="wealth-path" class="wealth-path"></div>
         </div>
 
         <div id="wealth-composition" class="wealth-composition"></div>
+
+        <div class="detail-stack">
+          <details class="secondary-details">
+            <summary class="secondary-details-toggle">
+              <div>
+                <p class="section-kicker">Rechenrahmen</p>
+                <span>Finanzierung und Steuerbasis im Überblick</span>
+              </div>
+              <small>Details einblenden</small>
+            </summary>
+            <div class="secondary-details-body">
+              <div class="assumption-grid">
+                <article>
+                  <p class="assumption-label">Eigenkapital für Nebenkosten</p>
+                  <p id="out-start-equity">-</p>
+                </article>
+                <article>
+                  <p class="assumption-label">Gesamtinvestition inkl. Nebenkosten</p>
+                  <p id="out-total-investment">-</p>
+                </article>
+                <article>
+                  <p id="out-tax-label" class="assumption-label">Steuer laut Grundtabelle</p>
+                  <p id="out-tax-rate">-</p>
+                </article>
+                <article>
+                  <p class="assumption-label">Restschuld bei Anschlussfinanzierung</p>
+                  <p id="out-refinance-debt">-</p>
+                </article>
+              </div>
+            </div>
+          </details>
+
+          <details class="secondary-details">
+            <summary class="secondary-details-toggle">
+              <div>
+                <p class="section-kicker">Optionaler Vergleich</p>
+                <span>Immobilie mit Vermögensdepot vergleichen</span>
+              </div>
+              <small>Alternative Kapitalanlage einblenden</small>
+            </summary>
+            <div class="secondary-details-body">
+              <div id="comparison-card" class="comparison-card"></div>
+            </div>
+          </details>
+        </div>
 
       </section>
     </section>
@@ -833,7 +859,7 @@ function renderProjection(): void {
     `Vermögenszuwachs ggü. Startkapital: ${formatSignedCurrency(result.wealthGain20)}`,
   )
   setText('out-object-value', formatCurrency(result.projectedValue20))
-  setText('out-cashflow20', formatSignedCurrency(result.cumulativeCashflow20))
+  setText('out-final-debt', formatCurrency(result.finalRemainingDebt))
   setText('out-growth-rate', `${formatSignedPercent(result.annualGrowthRate * 100)} % pro Jahr`)
   setText('out-equity-amount', formatCurrency(result.startEquity))
   setText('out-path-end', formatCurrency(result.wealth20))
@@ -855,7 +881,7 @@ function renderProjection(): void {
   renderBudgetCard(result)
   renderComparisonCard(result)
   renderLiquidityView(result)
-  renderWealthPath(result.yearlyWealthPath, result.yearlyDepotPath)
+  renderWealthPath(result.yearlyWealthPath)
   renderWealthComposition(result)
   syncUrlState()
 }
@@ -1084,15 +1110,10 @@ function renderBudgetCard(result: ProjectionResult): void {
 
   const toneClass = mainValue >= 0 ? 'tone-positive' : 'tone-negative'
 
-  const summary = mainValue >= 0
-    ? `Sie erhalten in den ersten ${afaYears} Jahren einen monatlichen Ertrag und bauen gleichzeitig ein Vermögen von ${formatCurrency(result.wealth20)} auf.`
-    : `Für nur ${formatCurrency(Math.abs(mainValue))} im Monat bauen Sie ein Vermögen von ${formatCurrency(result.wealth20)} auf.`
-
   el.innerHTML = `
-    <p class="budget-label">Mittlerer mtl. Aufwand nach Steuern</p>
+    <p class="budget-label">Mittlerer Nettoeffekt aufgrund Abschreibungszeitraum</p>
     <span class="budget-hero ${toneClass}">${formatSignedCurrency(mainValue)} / Monat</span>
-    <p class="budget-summary">${summary}</p>
-    <p class="budget-footnote">AfA Jahr 1–${afaYears}. Ab Jahr ${afaYears + 1} ohne Denkmal-AfA: ca. ${formatSignedCurrency(postAfa)}/Monat.</p>
+    <p class="budget-footnote">Durchschnitt aus AfA Jahr 1–${afaYears}. Ab Jahr ${afaYears + 1} ohne Denkmal-AfA: ca. ${formatSignedCurrency(postAfa)} / Monat.</p>
   `
 }
 
@@ -1104,7 +1125,12 @@ function renderComparisonCard(result: ProjectionResult): void {
 
   if (!existingSlider) {
     el.innerHTML = `
+      <p class="comparison-eyebrow">Alternative Kapitalanlage</p>
       <p class="comparison-title">Immobilie vs. Vermögensdepot nach ${projectionYears} Jahren</p>
+      <p class="comparison-copy">
+        Annahme: identisches Startkapital und dieselben jährlichen Überschüsse oder Zusatzaufwände
+        wie im Immobilien-Szenario.
+      </p>
       <div class="comparison-columns">
         <div id="comp-col-property" class="comparison-col">
           <p class="comparison-label">Immobilie</p>
@@ -1152,7 +1178,7 @@ function renderComparisonCard(result: ProjectionResult): void {
 
   const noteEl = getElementById<HTMLElement>('comp-note')
   noteEl.className = `comparison-note ${diff >= 0 ? 'tone-positive' : 'tone-negative'}`
-  noteEl.textContent = `${diff >= 0 ? '+' : ''}${formatCurrency(diff)} ${diff >= 0 ? 'Vorteil Immobilie (Hebeleffekt)' : 'Vorteil Vermögensdepot'}`
+  noteEl.textContent = `Differenz nach ${projectionYears} Jahren: ${formatCurrency(Math.abs(diff))} zugunsten der ${diff >= 0 ? 'Immobilie' : 'Depot-Alternative'}`
 }
 
 function renderWealthComposition(result: ProjectionResult): void {
@@ -1164,7 +1190,11 @@ function renderWealthComposition(result: ProjectionResult): void {
   ]
 
   el.innerHTML = `
-    <p class="composition-title">Woraus besteht Ihr Vermögen?</p>
+    <p class="composition-title">So setzt sich das Ergebnis zusammen</p>
+    <p class="composition-copy">
+      Objektwert, kumulierter Cashflow und die verbleibende Restschuld ergeben zusammen das
+      ausgewiesene Nettovermögen.
+    </p>
     <div class="composition-rows">
       ${rows
         .map(
@@ -1183,23 +1213,19 @@ function renderWealthComposition(result: ProjectionResult): void {
   `
 }
 
-function renderWealthPath(propertyValues: number[], depotValues: number[]): void {
+function renderWealthPath(propertyValues: number[]): void {
   const pathElement = getElementById<HTMLDivElement>('wealth-path')
-  const allValues = [...propertyValues, ...depotValues]
-  const maxAbs = Math.max(...allValues.map((value) => Math.abs(value)), 1)
+  const maxAbs = Math.max(...propertyValues.map((value) => Math.abs(value)), 1)
   pathElement.style.setProperty('--year-count', String(propertyValues.length))
 
   pathElement.innerHTML = propertyValues
     .map((value, index) => {
       const height = Math.max((Math.abs(value) / maxAbs) * 100, 3)
       const toneClass = value >= 0 ? 'path-bar-positive' : 'path-bar-negative'
-      const depotValue = depotValues[index] ?? 0
-      const depotHeight = Math.max((Math.abs(depotValue) / maxAbs) * 100, 1)
       return `
-        <div class="path-col" title="Jahr ${index + 1}: Immobilie ${formatCurrency(value)} | Depot ${formatCurrency(depotValue)}">
+        <div class="path-col" title="Jahr ${index + 1}: ${formatCurrency(value)} Nettovermögen">
           <span class="path-bar-wrap">
             <span class="path-bar ${toneClass}" style="height: ${height.toFixed(2)}%"></span>
-            <span class="path-depot-marker" style="bottom: ${depotHeight.toFixed(2)}%"></span>
           </span>
           <span class="path-year">${index + 1}</span>
         </div>

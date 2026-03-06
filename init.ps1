@@ -38,4 +38,4 @@ if ($Build) {
 }
 
 Write-Host "Init complete."
-Write-Host "Start dev server with: npm run dev"
+Write-Host "Start dev server with: .\\start-dashboard.ps1 or npm run dev:open"

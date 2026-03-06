@@ -14,7 +14,12 @@ npm install
 
 ## 3. Run app
 ```powershell
-npm run dev
+..\start-dashboard.ps1
+```
+
+Alternative directly from `dashboard`:
+```powershell
+npm run dev:open
 ```
 
 ## 4. Validate before commit

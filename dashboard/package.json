@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build --base=/YorkLiving/",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:fixed": "vite --host 127.0.0.1 --port 5174 --strictPort",
+    "dev:open": "vite --host 127.0.0.1 --port 5174 --strictPort --open"
   },
   "devDependencies": {
     "typescript": "~5.9.3",
