@@ -1368,11 +1368,9 @@ function updateConsultationMailLink(result: ProjectionResult): void {
     '',
     `Szenario-Link: ${scenarioUrl}`,
   ]
-  const params = new URLSearchParams({
-    subject,
-    body: bodyLines.join('\n'),
-  })
-  consultationMailLink.href = `mailto:${CONSULTATION_EMAIL}?${params.toString()}`
+  const body = bodyLines.join('\n')
+  const query = `subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  consultationMailLink.href = `mailto:${CONSULTATION_EMAIL}?${query}`
 }
 
 function setText(targetId: string, value: string): void {
@@ -2804,4 +2802,3 @@ function resolvePublicAssetPath(path: string): string {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
   return `${normalizedBase}${normalizedPath}`
 }
-
