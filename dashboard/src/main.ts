@@ -375,7 +375,7 @@ app.innerHTML = `
                 type="button"
                 aria-label="Zur nächsten Liquiditätsansicht wechseln"
               >
-                <span id="liquidity-mode" class="liquidity-mode">Tabelle</span>
+                <span id="liquidity-mode" class="liquidity-mode">Vor Steuern</span>
               </button>
             </div>
           </div>
@@ -524,6 +524,7 @@ app.innerHTML = `
             type="button"
             class="liquidity-inline-toggle"
             aria-label="Zur nächsten Grafikansicht wechseln"
+            hidden
           >
             Zur Grafik
           </button>
@@ -842,8 +843,8 @@ function calculateProjection(
   taxTableMode: TaxTableMode,
 ): ProjectionResult {
   const annualBaseRent = apartment.size * assumptions.rentPerSqm * 12
-  const annualManagementCostsFull = assumptions.monthlyManagementFlat * 12
-  const annualMaintenanceCostsFull = assumptions.monthlyMaintenanceFlat * 12
+  const annualManagementCostsFull = (apartment.monthlyManagement + apartment.monthlyOtherCost) * 12
+  const annualMaintenanceCostsFull = apartment.monthlyMaintenance * 12
   const taxableIncome = grossAnnualIncome * 0.8
   const annualTax = calculateAnnualIncomeTax(taxableIncome, taxTableMode)
   const marginalTaxRate = calculateMarginalTaxRate(taxableIncome, taxTableMode)
@@ -946,8 +947,10 @@ function calculateProjection(
     const yearlyNetBeforeDebt = yearlyGrossRent - yearlyOperatingCosts
 
     const yearlyAfaRate = getAfaFactorForProjectionYear(year)
-    const yearlyTaxBenefit =
-      apartment.purchasePrice * assumptions.monumentShare * yearlyAfaRate * marginalTaxRate
+    const yearlyAfaAmount = apartment.purchasePrice * assumptions.monumentShare * yearlyAfaRate
+    const yearlyTotalInterest = kfwInterest + bankInterest + refinanceInterest
+    const vuvEinkuenfte = yearlyNetBeforeDebt - yearlyTotalInterest - yearlyAfaAmount
+    const yearlyTaxBenefit = -vuvEinkuenfte * marginalTaxRate
     const yearlyCashflow = yearlyNetBeforeDebt - yearlyDebtService + yearlyTaxBenefit
 
     cumulativeCashflow20 += yearlyCashflow
@@ -1231,7 +1234,7 @@ function dismissLiquidityTableModal(): void {
     return
   }
 
-  liquidityViewMode = 'beforeTaxChart'
+  liquidityViewMode = 'afterTaxChart'
   renderProjection()
 }
 
@@ -1764,32 +1767,6 @@ function buildConfigSections(): ConfigSection[] {
             value.assumptions.vacancyRate = next
           },
         },
-        {
-          type: 'number',
-          id: 'config-monthly-management-flat',
-          label: 'Verwaltung pauschal',
-          hint: 'Projektweiter Monatswert in EUR.',
-          mode: 'currency',
-          min: 0,
-          step: 5,
-          get: (value) => value.assumptions.monthlyManagementFlat,
-          set: (value, next) => {
-            value.assumptions.monthlyManagementFlat = next
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-monthly-maintenance-flat',
-          label: 'Rücklage pauschal',
-          hint: 'Projektweiter Monatswert in EUR.',
-          mode: 'currency',
-          min: 0,
-          step: 5,
-          get: (value) => value.assumptions.monthlyMaintenanceFlat,
-          set: (value, next) => {
-            value.assumptions.monthlyMaintenanceFlat = next
-          },
-        },
       ],
     },
     {
@@ -1939,8 +1916,8 @@ function buildConfigSections(): ConfigSection[] {
       ],
     },
     {
-      title: 'AfA & Steuer',
-      copy: 'Abschreibung und Grenzsteuersätze für die Liquidität.',
+      title: 'AfA & Projektion',
+      copy: 'Abschreibungsparameter und Projektionslaufzeit.',
       open: false,
       fields: [
         {
@@ -2043,141 +2020,6 @@ function buildConfigSections(): ConfigSection[] {
           set: (value, next) => {
             const entry = getConfigAfaEntry(value, 1)
             value.assumptions.afaSchedule[1] = { ...entry, endYear: next }
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-tax-limit-1',
-          label: 'Steuergrenze 1',
-          hint: 'Monatliches Brutto für Satz 1.',
-          mode: 'currency',
-          min: 0,
-          step: 50,
-          get: (value) => getConfigTaxBracket(value, 0).maxMonthlyIncome,
-          set: (value, next) => {
-            value.taxBrackets[0] = { ...getConfigTaxBracket(value, 0), maxMonthlyIncome: next }
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-tax-rate-1',
-          label: 'Steuersatz 1',
-          hint: 'Grenzsteuersatz für die erste Stufe.',
-          mode: 'percent',
-          min: 0,
-          max: 60,
-          step: 0.1,
-          get: (value) => getConfigTaxBracket(value, 0).rate,
-          set: (value, next) => {
-            value.taxBrackets[0] = { ...getConfigTaxBracket(value, 0), rate: next }
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-tax-limit-2',
-          label: 'Steuergrenze 2',
-          hint: 'Monatliches Brutto für Satz 2.',
-          mode: 'currency',
-          min: 0,
-          step: 50,
-          get: (value) => getConfigTaxBracket(value, 1).maxMonthlyIncome,
-          set: (value, next) => {
-            value.taxBrackets[1] = { ...getConfigTaxBracket(value, 1), maxMonthlyIncome: next }
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-tax-rate-2',
-          label: 'Steuersatz 2',
-          hint: 'Grenzsteuersatz für die zweite Stufe.',
-          mode: 'percent',
-          min: 0,
-          max: 60,
-          step: 0.1,
-          get: (value) => getConfigTaxBracket(value, 1).rate,
-          set: (value, next) => {
-            value.taxBrackets[1] = { ...getConfigTaxBracket(value, 1), rate: next }
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-tax-limit-3',
-          label: 'Steuergrenze 3',
-          hint: 'Monatliches Brutto für Satz 3.',
-          mode: 'currency',
-          min: 0,
-          step: 50,
-          get: (value) => getConfigTaxBracket(value, 2).maxMonthlyIncome,
-          set: (value, next) => {
-            value.taxBrackets[2] = { ...getConfigTaxBracket(value, 2), maxMonthlyIncome: next }
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-tax-rate-3',
-          label: 'Steuersatz 3',
-          hint: 'Grenzsteuersatz für die dritte Stufe.',
-          mode: 'percent',
-          min: 0,
-          max: 60,
-          step: 0.1,
-          get: (value) => getConfigTaxBracket(value, 2).rate,
-          set: (value, next) => {
-            value.taxBrackets[2] = { ...getConfigTaxBracket(value, 2), rate: next }
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-tax-limit-4',
-          label: 'Steuergrenze 4',
-          hint: 'Monatliches Brutto für Satz 4.',
-          mode: 'currency',
-          min: 0,
-          step: 50,
-          get: (value) => getConfigTaxBracket(value, 3).maxMonthlyIncome,
-          set: (value, next) => {
-            value.taxBrackets[3] = { ...getConfigTaxBracket(value, 3), maxMonthlyIncome: next }
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-tax-rate-4',
-          label: 'Steuersatz 4',
-          hint: 'Grenzsteuersatz für die vierte Stufe.',
-          mode: 'percent',
-          min: 0,
-          max: 60,
-          step: 0.1,
-          get: (value) => getConfigTaxBracket(value, 3).rate,
-          set: (value, next) => {
-            value.taxBrackets[3] = { ...getConfigTaxBracket(value, 3), rate: next }
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-tax-limit-5',
-          label: 'Steuergrenze 5',
-          hint: 'Monatliches Brutto für Satz 5.',
-          mode: 'currency',
-          min: 0,
-          step: 50,
-          get: (value) => getConfigTaxBracket(value, 4).maxMonthlyIncome,
-          set: (value, next) => {
-            value.taxBrackets[4] = { ...getConfigTaxBracket(value, 4), maxMonthlyIncome: next }
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-tax-rate-5',
-          label: 'Steuersatz 5',
-          hint: 'Grenzsteuersatz für die letzte Stufe.',
-          mode: 'percent',
-          min: 0,
-          max: 60,
-          step: 0.1,
-          get: (value) => getConfigTaxBracket(value, 4).rate,
-          set: (value, next) => {
-            value.taxBrackets[4] = { ...getConfigTaxBracket(value, 4), rate: next }
           },
         },
       ],
@@ -2735,15 +2577,7 @@ function getConfigAfaEntry(sourceConfig: CalculationConfig, index: number): AfaS
   )
 }
 
-function getConfigTaxBracket(sourceConfig: CalculationConfig, index: number): TaxBracket {
-  return (
-    sourceConfig.taxBrackets[index] ??
-    defaultConfig.taxBrackets[index] ?? {
-      maxMonthlyIncome: 999999,
-      rate: 0,
-    }
-  )
-}
+
 
 function buildApartmentSubtitle(apartmentId: ApartmentId, size: number): string {
   const rooms = apartmentId === 'a' ? '1-Zimmer' : '2-Zimmer'
