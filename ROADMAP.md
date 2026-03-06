@@ -84,6 +84,12 @@
   - short intro with one CTA
   - preselected apartment option from deep link or campaign URL
   - optional advisor contact handoff after result view
+- Add a preset and share-link contract for customer scenarios:
+  - consultant preset IDs for advisor-defined defaults
+  - all customer-facing inputs must be reproducible from the URL
+  - consultant-only config must not leak into generic customer links
+  - exact rule: one customer changing values at home must never affect another customer
+  - keep browser-local config isolated via local storage only, never via shared remote state
 
 ## Priority 7: Media & Location Integration
 - Add a reusable media module for each property:
