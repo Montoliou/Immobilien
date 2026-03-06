@@ -111,3 +111,4 @@
 - Extract York-specific copy from `main.ts`.
 - Introduce `dashboard/src/data/property-content.json`.
 - Keep all calculations untouched during that refactor.
+
