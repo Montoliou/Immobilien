@@ -91,6 +91,46 @@
   - exact rule: one customer changing values at home must never affect another customer
   - keep browser-local config isolated via local storage only, never via shared remote state
 
+## Priority 6A: Preset Architecture For Advisor And Customer Mode
+- Introduce a preset file as the single source of truth for distributable customer setups.
+- Proposed file shape:
+  - `id`, `label`, `version`, `updatedAt`
+  - `contact`
+  - `hero`
+  - `marketFacts`
+  - `calculationConfig`
+  - `scenarioDefaults`
+  - `customerControls`
+- Keep consultant-only configuration out of the generic customer URL.
+- Use immutable preset files instead of overwriting one live config file.
+
+## Priority 6B: Delivery Modes
+- Split the app into two explicit modes:
+  - `mode=admin`: full parameter menu, preset editing, export/save actions
+  - `mode=customer`: only the approved dashboard controls, no scenario-link UI, no raw parameter editing
+- Customer mode should load exactly one preset as its base state.
+- Advisor mode should be able to preview the customer version before sharing.
+
+## Priority 6C: Preset Delivery Phases
+- Phase A: Static preset delivery
+  - store preset JSON files in `dashboard/public/presets/`
+  - load them via `?preset=<id>`
+  - export/update preset JSON from advisor mode
+  - deploy preset files together with the app
+- Phase B: Server-backed preset save
+  - add a protected write endpoint for saving preset JSON from the UI
+  - keep versioning and validation server-side
+  - never allow customer-side writes back into shared presets
+
+## Priority 6D: Customer-Facing UX Rules
+- In customer mode:
+  - remove the scenario-link button
+  - keep only the approved dashboard inputs
+  - move Google Maps out of the main hero action area
+  - enlarge the hero image area
+  - place the main headline above the hero visual
+- Keep contact handoff prominent and friction-light.
+
 ## Priority 7: Media & Location Integration
 - Add a reusable media module for each property:
   - exterior renderings
