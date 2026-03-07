@@ -1,0 +1,111 @@
+{
+  "id": "york-living-default",
+  "label": "York Living Standard",
+  "version": "1.0.0",
+  "updatedAt": "2026-03-07T00:00:00.000Z",
+  "calculationConfig": {
+    "defaultApartmentId": "a",
+    "defaultAnnualGrossIncome": 80000,
+    "incomeBounds": {
+      "min": 0,
+      "max": 300000,
+      "step": 100
+    },
+    "equityModel": {
+      "incomeMonthsFactor": 8,
+      "minEquity": 20000,
+      "maxTotalInvestmentRatio": 0.4
+    },
+    "assumptions": {
+      "rentPerSqm": 19.25,
+      "ancillaryCostRate": 0.085,
+      "vacancyRate": 0,
+      "monthlyManagementFlat": 70,
+      "monthlyMaintenanceFlat": 30,
+      "purchaseYear": 2027,
+      "rentStartYear": 2028,
+      "rentStartQuarter": 4,
+      "afaStartYear": 2028,
+      "afaStartQuarter": 4,
+      "kfwLoanAmount": 150000,
+      "kfwInterestRate": 0.029,
+      "kfwRepaymentRate": 0.024,
+      "kfwGraceYears": 3,
+      "kfwGrantAmount": 15000,
+      "bankInterestRate": 0.0485,
+      "bankRepaymentRate": 0.02,
+      "zinsbindungJahre": 10,
+      "refinanceInterestRate": 0.03,
+      "refinanceRepaymentRate": 0.02,
+      "monumentShare": 0.72,
+      "annualGrowthRate": 0.02,
+      "years": 20,
+      "afaSchedule": [
+        {
+          "startYear": 1,
+          "endYear": 8,
+          "rate": 0.09
+        },
+        {
+          "startYear": 9,
+          "endYear": 12,
+          "rate": 0.07
+        }
+      ]
+    },
+    "taxBrackets": [
+      {
+        "maxMonthlyIncome": 2800,
+        "rate": 0.24
+      },
+      {
+        "maxMonthlyIncome": 3800,
+        "rate": 0.29
+      },
+      {
+        "maxMonthlyIncome": 5200,
+        "rate": 0.34
+      },
+      {
+        "maxMonthlyIncome": 7000,
+        "rate": 0.38
+      },
+      {
+        "maxMonthlyIncome": 999999,
+        "rate": 0.42
+      }
+    ],
+    "apartments": [
+      {
+        "id": "a",
+        "label": "Apartment A",
+        "subtitle": "1-Zimmer, ca. 27 m2",
+        "size": 27,
+        "purchasePrice": 210000,
+        "image": "/floorplans/apartment-a.png",
+        "monthlyManagement": 55,
+        "monthlyMaintenance": 60,
+        "monthlyOtherCost": 20
+      },
+      {
+        "id": "b",
+        "label": "Apartment B",
+        "subtitle": "2-Zimmer, ca. 35 m2",
+        "size": 35,
+        "purchasePrice": 275000,
+        "image": "/floorplans/apartment-b.png",
+        "monthlyManagement": 65,
+        "monthlyMaintenance": 75,
+        "monthlyOtherCost": 25
+      }
+    ]
+  },
+  "scenarioDefaults": {
+    "apartmentId": "a",
+    "taxTableMode": "grund",
+    "annualGrossIncome": 80000,
+    "annualGrowthRatePercent": 2,
+    "investedEquity": 17850,
+    "depotReturnRatePercent": 6
+  }
+}

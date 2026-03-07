@@ -176,17 +176,42 @@ type HeroSlide = {
   caption: string
 }
 
+type AppMode = 'admin' | 'customer'
+
+type ScenarioDefaults = {
+  apartmentId: ApartmentId
+  taxTableMode: TaxTableMode
+  annualGrossIncome: number
+  annualGrowthRatePercent: number
+  investedEquity: number
+  depotReturnRatePercent: number
+}
+
+type RuntimePreset = {
+  id: string
+  label: string
+  version: string
+  updatedAt: string
+  calculationConfig: CalculationConfig
+  scenarioDefaults: ScenarioDefaults
+}
+
+type PresetContext = {
+  mode: AppMode
+  preset: RuntimePreset
+  notice: string | null
+  hasExplicitPresetParam: boolean
+}
+
 const CONFIG_STORAGE_KEY = 'york-living-runtime-config'
-const defaultConfig = deepCloneConfig(calculationConfig as CalculationConfig)
-const config = loadStoredConfig(defaultConfig)
-const configSections = buildConfigSections()
-const apartments = config.apartments
-const assumptions = config.assumptions
-const projectionYears = assumptions.years
+const DEFAULT_PRESET_ID = 'york-living-default'
 const growthBounds = { min: -2, max: 5, step: 0.1 }
 const equityBounds = { min: 0, max: 30000, step: 500 }
 const depotBounds = { min: 0, max: 12, step: 0.1 }
 const CONSULTATION_EMAIL = 'andreas.peters@mlp.de'
+const CONSULTATION_PHONE_LABEL = 'Direkt anrufen: 0151/19690871'
+const CONSULTATION_PHONE_LINK = 'tel:+4915119690871'
+const BOOKING_URL = 'https://mlp-onlineberatung.flexperto.com/expert?id=782'
 const MAPS_URL = 'https://maps.app.goo.gl/t3fVRBvNyz42xWMp7'
 const heroSlides: HeroSlide[] = [
   {
@@ -210,11 +235,25 @@ const heroSlides: HeroSlide[] = [
     caption: 'Münster, die Fahrrad-Stadt',
   },
 ]
+const defaultConfigSource = deepCloneConfig(calculationConfig as CalculationConfig)
+const embeddedDefaultPreset = buildEmbeddedDefaultPreset(defaultConfigSource)
+const presetContext = await loadPresetContext(embeddedDefaultPreset)
+const activePreset = presetContext.preset
+const activePresetId = activePreset.id
+const appMode = presetContext.mode
+const defaultConfig = deepCloneConfig(activePreset.calculationConfig)
+const shouldUseStoredConfig = appMode === 'admin' && !presetContext.hasExplicitPresetParam
+const config = shouldUseStoredConfig ? loadStoredConfig(defaultConfig) : deepCloneConfig(defaultConfig)
+const configSections = buildConfigSections()
+const apartments = config.apartments
+const assumptions = config.assumptions
+const projectionYears = assumptions.years
+const scenarioDefaults = normalizeScenarioDefaults(activePreset.scenarioDefaults, config)
 
 const app = getElementById<HTMLDivElement>('app')
 
 app.innerHTML = `
-  <details class="config-menu">
+  <details class="config-menu"${appMode === 'customer' ? ' hidden' : ''}>
     <summary class="config-toggle">Parameter</summary>
     <div class="config-panel">
       <div class="config-panel-header">
@@ -228,13 +267,51 @@ app.innerHTML = `
       </div>
 
       <form id="config-form" class="config-form" autocomplete="off">
+        <details class="config-group" open>
+          <summary class="config-group-toggle">
+            <span>Preset</span>
+            <small>Dateiname und Bezeichnung für die exportierbare Kundenversion.</small>
+          </summary>
+          <div class="config-grid">
+            <label class="config-field">
+              <span class="config-field-label">Preset-ID</span>
+              <span class="config-field-hint">
+                Wird als Dateiname und URL-Parameter genutzt, z. B. york-living-aerzte-01.
+              </span>
+              <div class="config-input-wrap">
+                <input
+                  id="preset-id"
+                  class="config-input"
+                  type="text"
+                  inputmode="text"
+                  spellcheck="false"
+                  autocomplete="off"
+                  placeholder="york-living-aerzte-01"
+                />
+              </div>
+            </label>
+            <label class="config-field">
+              <span class="config-field-label">Preset-Name</span>
+              <span class="config-field-hint">Interne Bezeichnung für diese Kundenversion.</span>
+              <div class="config-input-wrap">
+                <input
+                  id="preset-label"
+                  class="config-input"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="York Living Ärzte 01"
+                />
+              </div>
+            </label>
+          </div>
+        </details>
         <div class="config-section-list">${renderConfigSections(configSections, config)}</div>
       </form>
 
       <div class="config-actions">
         <button id="apply-config" class="btn btn-primary btn-compact" type="button">Übernehmen</button>
         <button id="reset-config" class="btn btn-secondary btn-compact" type="button">Zurücksetzen</button>
-        <button id="copy-config" class="btn btn-secondary btn-compact" type="button">Backup JSON</button>
+        <button id="copy-config" class="btn btn-secondary btn-compact" type="button">Preset JSON herunterladen</button>
       </div>
 
       <p id="config-status" class="config-status" role="status" aria-live="polite"></p>
@@ -242,7 +319,7 @@ app.innerHTML = `
   </details>
 
   <main class="page">
-    <section class="panel hero">
+    <section class="panel hero${appMode === 'customer' ? ' hero-customer' : ''}">
       <div class="hero-visual">
         <div id="hero-slideshow" class="hero-slideshow">
           <img
@@ -280,7 +357,7 @@ app.innerHTML = `
           Wählen Sie einen Grundriss, geben Sie Ihr Bruttojahreseinkommen ein und erhalten Sie sofort eine
           transparente ${projectionYears}-Jahres-Prognose für Ihr mögliches Vermögen.
         </p>
-        <div class="hero-actions">
+        <div class="hero-actions"${appMode === 'customer' ? ' hidden' : ''}>
           <a
             class="btn btn-secondary btn-link"
             href="${MAPS_URL}"
@@ -289,9 +366,9 @@ app.innerHTML = `
           >
             Lage auf Google Maps
           </a>
-          <button id="copy-scenario-link" class="btn btn-primary" type="button">Szenario-Link kopieren</button>
+          <button id="copy-scenario-link" class="btn btn-primary" type="button">Kunden-Link kopieren</button>
         </div>
-        <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
+        <p id="share-status" class="share-status" role="status" aria-live="polite"${appMode === 'customer' ? ' hidden' : ''}></p>
       </div>
     </section>
 
@@ -474,14 +551,14 @@ app.innerHTML = `
         </a>
         <a
           class="btn btn-secondary btn-link"
-          href="tel:+4915119690871"
+          href="${CONSULTATION_PHONE_LINK}"
           aria-label="Jetzt anrufen unter 0151 19690871"
         >
-          Direkt anrufen: 0151/19690871
+          ${CONSULTATION_PHONE_LABEL}
         </a>
         <a
           class="btn btn-secondary btn-link"
-          href="https://mlp-onlineberatung.flexperto.com/expert?id=782"
+          href="${BOOKING_URL}"
           target="_blank"
           rel="noreferrer noopener"
           aria-label="Direkte Terminbuchung in neuem Tab Öffnen"
@@ -502,6 +579,19 @@ app.innerHTML = `
         nach kompakten Apartments und eine Lage mit kurzen Wegen in die
         Innenstadt.
       </p>
+      ${appMode === 'customer'
+        ? `
+      <div class="facts-actions">
+        <a
+          class="btn btn-secondary btn-link"
+          href="${MAPS_URL}"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          Lage auf Google Maps
+        </a>
+      </div>`
+        : ''}
       <div class="facts-grid">
         <article class="fact-card">
           <p class="fact-number">30.000</p>
@@ -610,6 +700,8 @@ const equityInput = getElementById<HTMLInputElement>('equity-amount')
 const shareStatus = getElementById<HTMLElement>('share-status')
 const configForm = getElementById<HTMLFormElement>('config-form')
 const configStatus = getElementById<HTMLElement>('config-status')
+const presetIdInput = getElementById<HTMLInputElement>('preset-id')
+const presetLabelInput = getElementById<HTMLInputElement>('preset-label')
 const liquidityModeLabel = getElementById<HTMLElement>('liquidity-mode')
 const liquidityViewToggleButton = getElementById<HTMLButtonElement>('liquidity-view-toggle')
 const liquidityViewContent = getElementById<HTMLDivElement>('liquidity-view-content')
@@ -628,12 +720,12 @@ const liquidityModalContent = getElementById<HTMLDivElement>('liquidity-modal-co
 const liquidityModalCloseButton = getElementById<HTMLButtonElement>('liquidity-modal-close')
 const liquidityModalCycleButton = getElementById<HTMLButtonElement>('liquidity-modal-cycle')
 
-let selectedApartmentId: ApartmentId = config.defaultApartmentId
-let selectedTaxTableMode: TaxTableMode = 'grund'
-let annualGrossIncome = config.defaultAnnualGrossIncome
-let annualGrowthRatePercent = assumptions.annualGrowthRate * 100
-let investedEquity = getDefaultEquityForApartment(selectedApartmentId)
-let depotReturnRatePercent = 6
+let selectedApartmentId: ApartmentId = scenarioDefaults.apartmentId
+let selectedTaxTableMode: TaxTableMode = scenarioDefaults.taxTableMode
+let annualGrossIncome = scenarioDefaults.annualGrossIncome
+let annualGrowthRatePercent = scenarioDefaults.annualGrowthRatePercent
+let investedEquity = scenarioDefaults.investedEquity
+let depotReturnRatePercent = scenarioDefaults.depotReturnRatePercent
 let liquidityViewMode: LiquidityViewMode = 'afterTaxChart'
 let heroSlideIndex = 0
 let heroSlideIntervalId: number | null = null
@@ -646,12 +738,20 @@ renderTaxTableSelection()
 writeInputValue(annualGrossIncome)
 writeGrowthInputValue(annualGrowthRatePercent)
 writeEquityInputValue(investedEquity)
+presetIdInput.value = activePreset.id
+presetLabelInput.value = activePreset.label
 renderHeroSlide()
 startHeroAutoplay()
-if (hasStoredConfig()) {
+if (shouldUseStoredConfig && hasStoredConfig()) {
   setConfigStatus('Lokale Konfigurationsänderungen sind aktiv.')
 }
 renderProjection()
+if (presetContext.notice) {
+  setConfigStatus(presetContext.notice)
+  setStatus(presetContext.notice)
+} else if (appMode === 'admin' && presetContext.hasExplicitPresetParam && hasStoredConfig()) {
+  setConfigStatus(`Preset "${activePresetId}" wurde direkt aus der URL geladen. Lokale Browser-Konfiguration bleibt dafür unberücksichtigt.`)
+}
 
 incomeInput.addEventListener('input', () => {
   annualGrossIncome = clamp(
@@ -691,20 +791,38 @@ equityInput.addEventListener('input', () => {
   renderProjection()
 })
 
+presetIdInput.addEventListener('input', () => {
+  const normalized = presetIdInput.value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '')
+  presetIdInput.value = normalized
+})
+
 copyScenarioButton.addEventListener('click', async () => {
-  const scenarioUrl = buildScenarioUrl(
-    selectedApartmentId,
-    selectedTaxTableMode,
-    annualGrossIncome,
-    annualGrowthRatePercent,
-    investedEquity,
-  )
-  const copied = await copyToClipboard(scenarioUrl)
-  setStatus(
-    copied
-      ? 'Szenario-Link mit Wohnungswahl und Einkommen wurde kopiert.'
-      : 'Szenario-Link konnte nicht automatisch kopiert werden.',
-  )
+  try {
+    const scenarioUrl = buildScenarioUrl(
+      selectedApartmentId,
+      selectedTaxTableMode,
+      annualGrossIncome,
+      annualGrowthRatePercent,
+      investedEquity,
+      depotReturnRatePercent,
+      'customer',
+      requireDraftPresetId(),
+    )
+    const copied = await copyToClipboard(scenarioUrl)
+    setStatus(
+      copied
+        ? 'Kunden-Link mit Preset und Szenario wurde kopiert.'
+        : 'Kunden-Link konnte nicht automatisch kopiert werden.',
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
+    setStatus(message)
+  }
 })
 
 heroSlidePrevButton.addEventListener('click', () => {
@@ -783,19 +901,15 @@ resetConfigButton.addEventListener('click', () => {
   window.setTimeout(() => window.location.reload(), 250)
 })
 
-copyConfigButton.addEventListener('click', async () => {
+copyConfigButton.addEventListener('click', () => {
   try {
     const nextConfig = buildConfigFromForm(configForm)
-    const copied = await copyToClipboard(serializeConfig(nextConfig))
-    setConfigStatus(
-      copied
-        ? 'Konfigurations-Backup wurde als JSON kopiert.'
-        : 'Backup konnte nicht automatisch kopiert werden.',
-      !copied,
-    )
+    const nextPreset = buildCurrentPreset(nextConfig)
+    downloadTextFile(`${nextPreset.id}.json`, JSON.stringify(nextPreset, null, 2))
+    setConfigStatus('Preset JSON wurde heruntergeladen. Bitte unter dashboard/public/presets ablegen und deployen.')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
-    setConfigStatus(`Konfiguration ist noch nicht gültig: ${message}`, true)
+    setConfigStatus(`Preset ist noch nicht gültig: ${message}`, true)
   }
 })
 
@@ -1451,27 +1565,16 @@ function getLiquidityToggleLabel(viewMode: LiquidityViewMode): string {
 
 function syncUrlState(): void {
   const params = new URLSearchParams()
-  if (selectedApartmentId !== config.defaultApartmentId) {
-    params.set('apartment', selectedApartmentId)
-  }
-  if (selectedTaxTableMode !== 'grund') {
-    params.set('tax', selectedTaxTableMode)
-  }
-  if (annualGrossIncome !== config.defaultAnnualGrossIncome) {
-    params.set('gross', String(Math.round(annualGrossIncome)))
-  }
-  if (annualGrowthRatePercent !== assumptions.annualGrowthRate * 100) {
-    params.set('growth', String(annualGrowthRatePercent))
-  }
-  if (investedEquity !== getDefaultEquityForApartment(selectedApartmentId)) {
-    params.set('equity', String(Math.round(investedEquity)))
-  }
-  if (depotReturnRatePercent !== 6) {
-    params.set('depot', String(depotReturnRatePercent))
-  }
+  params.set('preset', activePresetId)
+  params.set('mode', appMode)
+  params.set('apartment', selectedApartmentId)
+  params.set('tax', selectedTaxTableMode)
+  params.set('gross', String(Math.round(annualGrossIncome)))
+  params.set('growth', String(annualGrowthRatePercent))
+  params.set('equity', String(Math.round(investedEquity)))
+  params.set('depot', String(depotReturnRatePercent))
 
-  const query = params.toString()
-  const nextUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname
+  const nextUrl = `${window.location.pathname}?${params.toString()}`
   window.history.replaceState(null, '', nextUrl)
 }
 
@@ -1486,7 +1589,7 @@ function hydrateStateFromUrl(): void {
   if (tax && isTaxTableMode(tax)) {
     selectedTaxTableMode = tax
   }
-  investedEquity = getDefaultEquityForApartment(selectedApartmentId)
+  investedEquity = getScenarioDefaultEquity(selectedApartmentId)
 
   const gross = params.get('gross') ?? params.get('income')
   if (gross) {
@@ -1532,13 +1635,19 @@ function buildScenarioUrl(
   grossAnnualIncomeValue: number,
   growthRatePercent: number,
   equityAmount: number,
+  depotRatePercent: number,
+  targetMode: AppMode = appMode,
+  presetId: string = activePresetId,
 ): string {
   const params = new URLSearchParams()
+  params.set('preset', presetId)
+  params.set('mode', targetMode)
   params.set('apartment', apartmentId)
   params.set('tax', taxTableMode)
   params.set('gross', String(Math.round(grossAnnualIncomeValue)))
   params.set('growth', String(growthRatePercent))
   params.set('equity', String(Math.round(equityAmount)))
+  params.set('depot', String(depotRatePercent))
   return `${window.location.origin}${window.location.pathname}?${params.toString()}`
 }
 
@@ -1549,6 +1658,9 @@ function updateConsultationMailLink(result: ProjectionResult): void {
     annualGrossIncome,
     annualGrowthRatePercent,
     investedEquity,
+    depotReturnRatePercent,
+    'customer',
+    resolveDraftPresetId(),
   )
   const subject = 'Beratung zum Immobilieninvestment York Living'
   const bodyLines = [
@@ -2844,6 +2956,13 @@ function asNumber(value: unknown, path: string): number {
   return value
 }
 
+function asOptionalNumber(value: unknown, fallback: number, path: string): number {
+  if (value === undefined || value === null || value === '') {
+    return fallback
+  }
+  return asNumber(value, path)
+}
+
 function asString(value: unknown, path: string): string {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`${path} muss ein String sein.`)
@@ -2865,6 +2984,206 @@ async function copyToClipboard(text: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+function buildEmbeddedDefaultPreset(sourceConfig: CalculationConfig): RuntimePreset {
+  const apartmentId = sourceConfig.defaultApartmentId
+  return {
+    id: DEFAULT_PRESET_ID,
+    label: 'York Living Standard',
+    version: '1.0.0',
+    updatedAt: '2026-03-07T00:00:00.000Z',
+    calculationConfig: deepCloneConfig(sourceConfig),
+    scenarioDefaults: {
+      apartmentId,
+      taxTableMode: 'grund',
+      annualGrossIncome: sourceConfig.defaultAnnualGrossIncome,
+      annualGrowthRatePercent: sourceConfig.assumptions.annualGrowthRate * 100,
+      investedEquity: getDefaultEquityForApartmentFromConfig(sourceConfig, apartmentId),
+      depotReturnRatePercent: 6,
+    },
+  }
+}
+
+async function loadPresetContext(fallbackPreset: RuntimePreset): Promise<PresetContext> {
+  const params = new URLSearchParams(window.location.search)
+  const requestedMode = params.get('mode')
+  const mode: AppMode = isAppMode(requestedMode) ? requestedMode : 'admin'
+  const requestedPresetParam = params.get('preset')
+  const requestedPresetId = sanitizePresetId(requestedPresetParam) ?? fallbackPreset.id
+  const hasExplicitPresetParam = sanitizePresetId(requestedPresetParam) !== null
+
+  try {
+    const response = await fetch(resolvePublicAssetPath(`/presets/${requestedPresetId}.json`), {
+      cache: 'no-store',
+    })
+    if (!response.ok) {
+      throw new Error(`Preset ${requestedPresetId} konnte nicht geladen werden.`)
+    }
+    const rawPreset = await response.json()
+    return {
+      mode,
+      preset: validatePreset(rawPreset),
+      notice: null,
+      hasExplicitPresetParam,
+    }
+  } catch {
+    const notice = requestedPresetId === fallbackPreset.id
+      ? null
+      : `Preset "${requestedPresetId}" konnte nicht geladen werden. Die eingebettete Standardkonfiguration wird verwendet.`
+
+    return {
+      mode,
+      preset: fallbackPreset,
+      notice,
+      hasExplicitPresetParam,
+    }
+  }
+}
+
+function normalizeScenarioDefaults(candidate: ScenarioDefaults, sourceConfig: CalculationConfig): ScenarioDefaults {
+  const fallback = buildEmbeddedDefaultPreset(sourceConfig).scenarioDefaults
+  const apartmentId = sourceConfig.apartments.some((entry) => entry.id === candidate.apartmentId)
+    ? candidate.apartmentId
+    : fallback.apartmentId
+
+  return {
+    apartmentId,
+    taxTableMode: candidate.taxTableMode,
+    annualGrossIncome: clamp(candidate.annualGrossIncome, sourceConfig.incomeBounds.min, sourceConfig.incomeBounds.max),
+    annualGrowthRatePercent: clamp(candidate.annualGrowthRatePercent, growthBounds.min, growthBounds.max),
+    investedEquity: clamp(candidate.investedEquity, equityBounds.min, equityBounds.max),
+    depotReturnRatePercent: clamp(candidate.depotReturnRatePercent, depotBounds.min, depotBounds.max),
+  }
+}
+
+function validatePreset(candidate: unknown): RuntimePreset {
+  if (!isRecord(candidate)) {
+    throw new Error('Preset muss ein JSON-Objekt sein.')
+  }
+
+  const calculationConfigValue = validateConfig(candidate.calculationConfig)
+  const fallbackPreset = buildEmbeddedDefaultPreset(calculationConfigValue)
+  const scenarioDefaults = validateScenarioDefaults(candidate.scenarioDefaults, calculationConfigValue)
+
+  return {
+    id: typeof candidate.id === 'string' && candidate.id.trim() ? candidate.id.trim() : fallbackPreset.id,
+    label: typeof candidate.label === 'string' && candidate.label.trim() ? candidate.label.trim() : fallbackPreset.label,
+    version: typeof candidate.version === 'string' && candidate.version.trim() ? candidate.version.trim() : fallbackPreset.version,
+    updatedAt:
+      typeof candidate.updatedAt === 'string' && candidate.updatedAt.trim()
+        ? candidate.updatedAt.trim()
+        : fallbackPreset.updatedAt,
+    calculationConfig: calculationConfigValue,
+    scenarioDefaults,
+  }
+}
+
+function validateScenarioDefaults(candidate: unknown, sourceConfig: CalculationConfig): ScenarioDefaults {
+  const fallback = buildEmbeddedDefaultPreset(sourceConfig).scenarioDefaults
+  if (!isRecord(candidate)) {
+    return fallback
+  }
+
+  const apartmentValue = typeof candidate.apartmentId === 'string' ? candidate.apartmentId : fallback.apartmentId
+  const taxValue = typeof candidate.taxTableMode === 'string' ? candidate.taxTableMode : fallback.taxTableMode
+
+  return normalizeScenarioDefaults(
+    {
+      apartmentId:
+        isApartmentId(apartmentValue) && sourceConfig.apartments.some((entry) => entry.id === apartmentValue)
+          ? apartmentValue
+          : fallback.apartmentId,
+      taxTableMode: isTaxTableMode(taxValue) ? taxValue : fallback.taxTableMode,
+      annualGrossIncome: asOptionalNumber(candidate.annualGrossIncome, fallback.annualGrossIncome, 'scenarioDefaults.annualGrossIncome'),
+      annualGrowthRatePercent: asOptionalNumber(
+        candidate.annualGrowthRatePercent,
+        fallback.annualGrowthRatePercent,
+        'scenarioDefaults.annualGrowthRatePercent',
+      ),
+      investedEquity: asOptionalNumber(candidate.investedEquity, fallback.investedEquity, 'scenarioDefaults.investedEquity'),
+      depotReturnRatePercent: asOptionalNumber(
+        candidate.depotReturnRatePercent,
+        fallback.depotReturnRatePercent,
+        'scenarioDefaults.depotReturnRatePercent',
+      ),
+    },
+    sourceConfig,
+  )
+}
+
+function getDefaultEquityForApartmentFromConfig(sourceConfig: CalculationConfig, apartmentId: ApartmentId): number {
+  const apartment = sourceConfig.apartments.find((entry) => entry.id === apartmentId)
+  if (!apartment) {
+    return equityBounds.min
+  }
+  const ancillaryCosts = apartment.purchasePrice * sourceConfig.assumptions.ancillaryCostRate
+  return clamp(ancillaryCosts, equityBounds.min, equityBounds.max)
+}
+
+function getScenarioDefaultEquity(apartmentId: ApartmentId): number {
+  return apartmentId === scenarioDefaults.apartmentId
+    ? scenarioDefaults.investedEquity
+    : getDefaultEquityForApartment(apartmentId)
+}
+
+function buildCurrentPreset(nextConfig: CalculationConfig): RuntimePreset {
+  return {
+    ...activePreset,
+    id: requireDraftPresetId(),
+    label: resolveDraftPresetLabel(),
+    updatedAt: new Date().toISOString(),
+    calculationConfig: deepCloneConfig(nextConfig),
+    scenarioDefaults: {
+      apartmentId: selectedApartmentId,
+      taxTableMode: selectedTaxTableMode,
+      annualGrossIncome,
+      annualGrowthRatePercent,
+      investedEquity,
+      depotReturnRatePercent,
+    },
+  }
+}
+
+function resolveDraftPresetId(): string {
+  return sanitizePresetId(presetIdInput.value) ?? activePresetId
+}
+
+function requireDraftPresetId(): string {
+  const presetId = sanitizePresetId(presetIdInput.value)
+  if (!presetId) {
+    throw new Error('Preset-ID darf nur Buchstaben, Zahlen und Bindestriche enthalten.')
+  }
+  return presetId
+}
+
+function resolveDraftPresetLabel(): string {
+  const label = presetLabelInput.value.trim()
+  return label || activePreset.label
+}
+
+function downloadTextFile(filename: string, text: string): void {
+  const blob = new Blob([text], { type: 'application/json;charset=utf-8' })
+  const href = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = href
+  anchor.download = filename
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(href), 0)
+}
+
+function sanitizePresetId(value: string | null): string | null {
+  if (!value) {
+    return null
+  }
+  const normalized = value.trim()
+  return /^[a-z0-9-]+$/i.test(normalized) ? normalized : null
+}
+
+function isAppMode(value: string | null): value is AppMode {
+  return value === 'admin' || value === 'customer'
 }
 
 function getElementById<T extends HTMLElement>(id: string): T {
