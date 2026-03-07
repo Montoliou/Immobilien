@@ -196,6 +196,11 @@ type RuntimePreset = {
   scenarioDefaults: ScenarioDefaults
 }
 
+type PresetManifestEntry = {
+  id: string
+  label: string
+}
+
 type PresetContext = {
   mode: AppMode
   preset: RuntimePreset
@@ -240,6 +245,7 @@ const embeddedDefaultPreset = buildEmbeddedDefaultPreset(defaultConfigSource)
 const presetContext = await loadPresetContext(embeddedDefaultPreset)
 const activePreset = presetContext.preset
 const activePresetId = activePreset.id
+const presetManifest = await loadPresetManifest(activePreset)
 const appMode = presetContext.mode
 const defaultConfig = deepCloneConfig(activePreset.calculationConfig)
 const shouldUseStoredConfig = appMode === 'admin' && !presetContext.hasExplicitPresetParam
@@ -303,6 +309,17 @@ app.innerHTML = `
                 />
               </div>
             </label>
+          </div>
+          <div class="config-toolbar">
+            <label class="config-field config-field-grow">
+              <span class="config-field-label">Gespeichertes Preset</span>
+              <span class="config-field-hint">Lädt eine vorhandene Preset-Datei aus public/presets.</span>
+              <select id="preset-selector" class="config-select">${renderPresetManifestOptions(presetManifest, activePresetId)}</select>
+            </label>
+            <div class="config-toolbar-actions">
+              <button id="load-preset" class="btn btn-secondary btn-compact" type="button">Preset laden</button>
+              <button id="preview-preset" class="btn btn-secondary btn-compact" type="button">Kundenvorschau</button>
+            </div>
           </div>
         </details>
         <div class="config-section-list">${renderConfigSections(configSections, config)}</div>
@@ -702,6 +719,9 @@ const configForm = getElementById<HTMLFormElement>('config-form')
 const configStatus = getElementById<HTMLElement>('config-status')
 const presetIdInput = getElementById<HTMLInputElement>('preset-id')
 const presetLabelInput = getElementById<HTMLInputElement>('preset-label')
+const presetSelector = getElementById<HTMLSelectElement>('preset-selector')
+const loadPresetButton = getElementById<HTMLButtonElement>('load-preset')
+const previewPresetButton = getElementById<HTMLButtonElement>('preview-preset')
 const liquidityModeLabel = getElementById<HTMLElement>('liquidity-mode')
 const liquidityViewToggleButton = getElementById<HTMLButtonElement>('liquidity-view-toggle')
 const liquidityViewContent = getElementById<HTMLDivElement>('liquidity-view-content')
@@ -799,6 +819,20 @@ presetIdInput.addEventListener('input', () => {
     .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '')
   presetIdInput.value = normalized
+})
+
+loadPresetButton.addEventListener('click', () => {
+  const nextPresetId = sanitizePresetId(presetSelector.value)
+  if (!nextPresetId || nextPresetId === activePresetId) {
+    setConfigStatus('Dieses Preset ist bereits geladen.')
+    return
+  }
+  window.location.assign(buildPresetModeUrl('admin', nextPresetId))
+})
+
+previewPresetButton.addEventListener('click', () => {
+  const targetPresetId = sanitizePresetId(presetSelector.value) ?? activePresetId
+  window.open(buildPresetModeUrl('customer', targetPresetId), '_blank', 'noopener,noreferrer')
 })
 
 copyScenarioButton.addEventListener('click', async () => {
@@ -906,7 +940,7 @@ copyConfigButton.addEventListener('click', () => {
     const nextConfig = buildConfigFromForm(configForm)
     const nextPreset = buildCurrentPreset(nextConfig)
     downloadTextFile(`${nextPreset.id}.json`, JSON.stringify(nextPreset, null, 2))
-    setConfigStatus('Preset JSON wurde heruntergeladen. Bitte unter dashboard/public/presets ablegen und deployen.')
+    setConfigStatus('Preset JSON wurde heruntergeladen. Bitte unter dashboard/public/presets ablegen, manifest.json ergänzen und anschließend deployen.')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
     setConfigStatus(`Preset ist noch nicht gültig: ${message}`, true)
@@ -1627,6 +1661,13 @@ function hydrateStateFromUrl(): void {
     )
   }
 
+}
+
+function buildPresetModeUrl(targetMode: AppMode, presetId: string): string {
+  const params = new URLSearchParams()
+  params.set('preset', presetId)
+  params.set('mode', targetMode)
+  return `${window.location.origin}${window.location.pathname}?${params.toString()}`
 }
 
 function buildScenarioUrl(
@@ -3005,6 +3046,23 @@ function buildEmbeddedDefaultPreset(sourceConfig: CalculationConfig): RuntimePre
   }
 }
 
+async function loadPresetManifest(activePresetValue: RuntimePreset): Promise<PresetManifestEntry[]> {
+  try {
+    const response = await fetch(resolvePublicAssetPath('/presets/manifest.json'), { cache: 'no-store' })
+    if (!response.ok) {
+      throw new Error('Preset-Manifest konnte nicht geladen werden.')
+    }
+    const rawManifest = await response.json()
+    const entries = validatePresetManifest(rawManifest)
+    if (!entries.some((entry) => entry.id === activePresetValue.id)) {
+      entries.unshift({ id: activePresetValue.id, label: activePresetValue.label })
+    }
+    return entries
+  } catch {
+    return [{ id: activePresetValue.id, label: activePresetValue.label }]
+  }
+}
+
 async function loadPresetContext(fallbackPreset: RuntimePreset): Promise<PresetContext> {
   const params = new URLSearchParams(window.location.search)
   const requestedMode = params.get('mode')
@@ -3055,6 +3113,36 @@ function normalizeScenarioDefaults(candidate: ScenarioDefaults, sourceConfig: Ca
     investedEquity: clamp(candidate.investedEquity, equityBounds.min, equityBounds.max),
     depotReturnRatePercent: clamp(candidate.depotReturnRatePercent, depotBounds.min, depotBounds.max),
   }
+}
+
+function validatePresetManifest(candidate: unknown): PresetManifestEntry[] {
+  const source = Array.isArray(candidate)
+    ? candidate
+    : isRecord(candidate) && Array.isArray(candidate.presets)
+      ? candidate.presets
+      : null
+
+  if (!source) {
+    throw new Error('Preset-Manifest muss ein Array oder ein Objekt mit presets sein.')
+  }
+
+  const entries = source.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return []
+    }
+    const id = sanitizePresetId(typeof entry.id === 'string' ? entry.id : null)
+    const label = typeof entry.label === 'string' ? entry.label.trim() : ''
+    if (!id || !label) {
+      return []
+    }
+    return [{ id, label }]
+  })
+
+  if (!entries.length) {
+    throw new Error('Preset-Manifest enthält keine gültigen Einträge.')
+  }
+
+  return entries.sort((left, right) => left.label.localeCompare(right.label, 'de'))
 }
 
 function validatePreset(candidate: unknown): RuntimePreset {
@@ -3145,6 +3233,15 @@ function buildCurrentPreset(nextConfig: CalculationConfig): RuntimePreset {
   }
 }
 
+function renderPresetManifestOptions(entries: PresetManifestEntry[], currentId: string): string {
+  return entries
+    .map((entry) => {
+      const selected = entry.id === currentId ? ' selected' : ''
+      return `<option value="${escapeHtml(entry.id)}"${selected}>${escapeHtml(entry.label)}</option>`
+    })
+    .join('')
+}
+
 function resolveDraftPresetId(): string {
   return sanitizePresetId(presetIdInput.value) ?? activePresetId
 }
@@ -3172,6 +3269,15 @@ function downloadTextFile(filename: string, text: string): void {
   anchor.click()
   anchor.remove()
   window.setTimeout(() => URL.revokeObjectURL(href), 0)
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 function sanitizePresetId(value: string | null): string | null {

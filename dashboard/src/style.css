@@ -289,6 +289,22 @@ p {
   flex-wrap: wrap;
 }
 
+.config-toolbar {
+  display: grid;
+  gap: var(--space-12);
+  padding: 0 var(--space-16) var(--space-16);
+}
+
+.config-field-grow {
+  min-width: 0;
+}
+
+.config-toolbar-actions {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+
 .btn-compact {
   min-height: 40px;
   padding: 8px 14px;
@@ -1751,3 +1767,4 @@ p {
     display: none;
   }
 }
+

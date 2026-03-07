@@ -1,0 +1,14 @@
+[
+  {
+    "id": "york-living-default",
+    "label": "York Living Standard"
+  },
+  {
+    "id": "yorklivingaerzteangestellt",
+    "label": "York Living Angestellte Ärzte"
+  },
+  {
+    "id": "yorklivingndgl",
+    "label": "York Living Niedergelassen"
+  }
+]
