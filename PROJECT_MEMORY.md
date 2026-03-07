@@ -26,6 +26,12 @@
   - Rent start `Q4 2028`
   - Denkmal-AfA start `Q4 2028`
 
+## Live Deployment Topology
+- Two live variants exist at the same time.
+- `main` branch is currently live on `mlp-mediziner-beratung.de/YorkLiving`.
+- `codex-vorschlaege` branch is currently live on `montolio.de/YorkLiving`.
+- Do not mix these targets during deploys. Always confirm which branch/domain pairing is intended before publishing.
+
 ## Working Conventions
 - Main implementation path: `dashboard/src/`.
 - Public assets path: `dashboard/public/`.
