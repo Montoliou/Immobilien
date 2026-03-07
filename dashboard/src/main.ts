@@ -374,6 +374,19 @@ app.innerHTML = `
           Wählen Sie einen Grundriss, geben Sie Ihr Bruttojahreseinkommen ein und erhalten Sie sofort eine
           transparente ${projectionYears}-Jahres-Prognose für Ihr mögliches Vermögen.
         </p>
+        ${appMode === 'customer'
+          ? `
+        <div class="hero-context-link">
+          <a
+            class="btn btn-secondary btn-link"
+            href="${MAPS_URL}"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            Lage auf Google Maps
+          </a>
+        </div>`
+          : ''}
         <div class="hero-actions"${appMode === 'customer' ? ' hidden' : ''}>
           <a
             class="btn btn-secondary btn-link"
@@ -596,19 +609,6 @@ app.innerHTML = `
         nach kompakten Apartments und eine Lage mit kurzen Wegen in die
         Innenstadt.
       </p>
-      ${appMode === 'customer'
-        ? `
-      <div class="facts-actions">
-        <a
-          class="btn btn-secondary btn-link"
-          href="${MAPS_URL}"
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          Lage auf Google Maps
-        </a>
-      </div>`
-        : ''}
       <div class="facts-grid">
         <article class="fact-card">
           <p class="fact-number">30.000</p>

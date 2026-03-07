@@ -444,6 +444,12 @@ p {
   color: var(--ink-soft);
 }
 
+.hero-context-link {
+  display: flex;
+  gap: var(--space-16);
+  flex-wrap: wrap;
+}
+
 .hero-actions {
   display: flex;
   gap: var(--space-16);
@@ -1327,12 +1333,6 @@ p {
 .facts-panel {
   display: grid;
   gap: var(--space-16);
-}
-
-.facts-actions {
-  display: flex;
-  gap: var(--space-16);
-  flex-wrap: wrap;
 }
 
 .facts-grid {
