@@ -1,20 +1,20 @@
 {
-  "id": "york-living-default",
-  "label": "York Living Standard",
+  "id": "yorklivingndgl",
+  "label": "York Living Niedergelassen",
   "version": "1.0.0",
-  "updatedAt": "2026-03-07T12:07:58.888Z",
+  "updatedAt": "2026-03-07T12:10:25.268Z",
   "calculationConfig": {
-    "defaultApartmentId": "a",
-    "defaultAnnualGrossIncome": 80000,
+    "defaultApartmentId": "b",
+    "defaultAnnualGrossIncome": 150000,
     "incomeBounds": {
       "min": 0,
-      "max": 300000,
+      "max": 1000000,
       "step": 100
     },
     "equityModel": {
       "incomeMonthsFactor": 8,
-      "minEquity": 20000,
-      "maxTotalInvestmentRatio": 0.4
+      "minEquity": 0,
+      "maxTotalInvestmentRatio": 1
     },
     "assumptions": {
       "rentPerSqm": 19.25,
@@ -84,8 +84,8 @@
         "purchasePrice": 210000,
         "image": "/floorplans/apartment-a.png",
         "monthlyManagement": 55,
-        "monthlyMaintenance": 60,
-        "monthlyOtherCost": 20
+        "monthlyMaintenance": 40,
+        "monthlyOtherCost": 0
       },
       {
         "id": "b",
@@ -95,8 +95,8 @@
         "purchasePrice": 275000,
         "image": "/floorplans/apartment-b.png",
         "monthlyManagement": 65,
-        "monthlyMaintenance": 75,
-        "monthlyOtherCost": 25
+        "monthlyMaintenance": 50,
+        "monthlyOtherCost": 0
       }
     ]
   },

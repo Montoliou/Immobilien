@@ -1,11 +1,11 @@
 {
-  "id": "york-living-default",
-  "label": "York Living Standard",
+  "id": "yorklivingaerzteangestellt",
+  "label": "York Living Angestellte Ärzte",
   "version": "1.0.0",
-  "updatedAt": "2026-03-07T12:07:58.888Z",
+  "updatedAt": "2026-03-07T12:13:15.545385Z",
   "calculationConfig": {
     "defaultApartmentId": "a",
-    "defaultAnnualGrossIncome": 80000,
+    "defaultAnnualGrossIncome": 120000,
     "incomeBounds": {
       "min": 0,
       "max": 300000,
@@ -103,7 +103,7 @@
   "scenarioDefaults": {
     "apartmentId": "a",
     "taxTableMode": "grund",
-    "annualGrossIncome": 80000,
+    "annualGrossIncome": 120000,
     "annualGrowthRatePercent": 2,
     "investedEquity": 17850,
     "depotReturnRatePercent": 6

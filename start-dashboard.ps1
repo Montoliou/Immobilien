@@ -1,13 +1,13 @@
 param(
   [int]$Port = 5174,
-  [string]$Host = '127.0.0.1'
+  [string]$BindHost = '127.0.0.1'
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $dashboardPath = Join-Path $repoRoot 'dashboard'
-$url = "http://${Host}:${Port}/"
+$url = "http://${BindHost}:${Port}/"
 
 if (-not (Test-Path $dashboardPath)) {
   throw "Dashboard-Ordner nicht gefunden: $dashboardPath"
@@ -58,3 +58,4 @@ if (-not $ready) {
 
 Start-Process $url
 Write-Host "Browser geoeffnet: $url"
+
