@@ -186,7 +186,6 @@ const projectionYears = assumptions.years
 const growthBounds = { min: -2, max: 5, step: 0.1 }
 const equityBounds = { min: 0, max: 30000, step: 500 }
 const depotBounds = { min: 0, max: 12, step: 0.1 }
-const CONSULTATION_EMAIL = 'andreas.peters@mlp.de'
 const MAPS_URL = 'https://maps.app.goo.gl/t3fVRBvNyz42xWMp7'
 const heroSlides: HeroSlide[] = [
   {
@@ -431,44 +430,6 @@ app.innerHTML = `
       </section>
     </section>
 
-    <section class="panel contact-panel" aria-labelledby="contact-title">
-      <h2 id="contact-title">Ich bin interessiert!</h2>
-      <p class="lead">
-        Mit einem Klick können Sie direkt per E-Mail um Rückruf bitten, sofort telefonisch
-        Kontakt aufnehmen oder direkt einen Termin buchen.
-      </p>
-      <div class="contact-actions">
-        <a
-          id="consultation-mail-link"
-          class="btn btn-primary btn-link"
-          href="mailto:${CONSULTATION_EMAIL}"
-          aria-label="Beratungsgespräch per E-Mail anfordern"
-        >
-          Beratung per Mail anfordern
-        </a>
-        <a
-          class="btn btn-secondary btn-link"
-          href="tel:+4915119690871"
-          aria-label="Jetzt anrufen unter 0151 19690871"
-        >
-          Direkt anrufen: 0151/19690871
-        </a>
-        <a
-          class="btn btn-secondary btn-link"
-          href="https://mlp-onlineberatung.flexperto.com/expert?id=782"
-          target="_blank"
-          rel="noreferrer noopener"
-          aria-label="Direkte Terminbuchung in neuem Tab Öffnen"
-        >
-          Direkte Terminbuchung
-        </a>
-      </div>
-      <p class="small-note">
-        Wenn Sie Unterstützung bei den Eingaben wünschen, rufen Sie gern an oder senden Sie
-        eine kurze E-Mail.
-      </p>
-    </section>
-
     <section class="panel facts-panel">
       <h2>Ein paar schnelle Fakten über Münster.</h2>
       <p class="lead">
@@ -591,7 +552,6 @@ const applyConfigButton = getElementById<HTMLButtonElement>('apply-config')
 const resetConfigButton = getElementById<HTMLButtonElement>('reset-config')
 const copyConfigButton = getElementById<HTMLButtonElement>('copy-config')
 const copyScenarioButton = getElementById<HTMLButtonElement>('copy-scenario-link')
-const consultationMailLink = getElementById<HTMLAnchorElement>('consultation-mail-link')
 const heroSlideshow = getElementById<HTMLDivElement>('hero-slideshow')
 const heroSlideImage = getElementById<HTMLImageElement>('hero-slide-image')
 const heroSlideCaption = getElementById<HTMLElement>('hero-slide-caption')
@@ -850,7 +810,6 @@ function renderProjection(): void {
   )
   setText('out-tax-label', `Steuer laut ${getTaxTableLabel(result.taxTableMode)}`)
   setText('out-refinance-debt', formatCurrency(result.refinanceDebtBase))
-  updateConsultationMailLink(result)
 
   renderBudgetCard(result)
   renderComparisonCard(result)
@@ -1514,34 +1473,6 @@ function buildScenarioUrl(
   params.set('growth', String(growthRatePercent))
   params.set('equity', String(Math.round(equityAmount)))
   return `${window.location.origin}${window.location.pathname}?${params.toString()}`
-}
-
-function updateConsultationMailLink(result: ProjectionResult): void {
-  const scenarioUrl = buildScenarioUrl(
-    selectedApartmentId,
-    selectedTaxTableMode,
-    annualGrossIncome,
-    annualGrowthRatePercent,
-    investedEquity,
-  )
-  const subject = 'Beratung zum Immobilieninvestment York Living'
-  const bodyLines = [
-    'Guten Tag Herr Peters,',
-    '',
-    'bitte kontaktieren Sie mich zeitnah, um ein Beratungsgespräch zum Immobilieninvestment York Living zu vereinbaren.',
-    '',
-    'Meine aktuelle Berechnung:',
-    `- Wohnungsoption: ${result.apartment.label} (${result.apartment.subtitle})`,
-    `- Steuertarif: ${getTaxTableLabel(result.taxTableMode)}`,
-    `- Bruttojahreseinkommen: ${formatCurrency(result.annualGrossIncome)}`,
-    `- Wertentwicklung p.a.: ${formatSignedPercent(result.annualGrowthRate * 100)} %`,
-    `- Eingesetztes Eigenkapital: ${formatCurrency(result.startEquity)}`,
-    '',
-    `Szenario-Link: ${scenarioUrl}`,
-  ]
-  const body = bodyLines.join('\n')
-  const query = `subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-  consultationMailLink.href = `mailto:${CONSULTATION_EMAIL}?${query}`
 }
 
 function setText(targetId: string, value: string): void {

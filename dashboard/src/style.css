@@ -1200,17 +1200,6 @@ p {
   margin-bottom: var(--space-8);
 }
 
-.contact-panel {
-  display: grid;
-  gap: var(--space-16);
-}
-
-.contact-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-16);
-}
-
 .facts-panel {
   display: grid;
   gap: var(--space-16);
