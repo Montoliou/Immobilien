@@ -29,7 +29,8 @@
 ## Live Deployment Topology
 - Two live variants exist at the same time.
 - `main` branch is currently live on `mlp-mediziner-beratung.de/YorkLiving`.
-- `codex-vorschlaege` branch is currently live on `montolio.de/YorkLiving`.
+- `codex-vorschlaege` was the previous Montolio test branch on `montolio.de/YorkLiving`.
+- `berater-kundenversion` is the current Montolio test branch on `montolio.de/YorkLiving` until superseded.
 - Do not mix these targets during deploys. Always confirm which branch/domain pairing is intended before publishing.
 
 ## Working Conventions

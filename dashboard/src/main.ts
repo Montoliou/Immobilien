@@ -143,6 +143,7 @@ type ProjectionResult = {
   marginalTaxRate: number
   annualGrowthRate: number
   startEquity: number
+  initialNetWealth: number
   totalInvestment: number
   ancillaryCosts: number
   initialDebt: number
@@ -496,7 +497,7 @@ app.innerHTML = `
           ? `
         <div class="assumption-grid">
           <article>
-            <p class="assumption-label">Eigenkapital für Nebenkosten</p>
+            <p class="assumption-label">Startvermögen nach Nebenkosten</p>
             <p id="out-start-equity">-</p>
           </article>
           <article>
@@ -607,7 +608,7 @@ app.innerHTML = `
             <div class="secondary-details-body">
               <div class="assumption-grid">
                 <article>
-                  <p class="assumption-label">Eigenkapital für Nebenkosten</p>
+                  <p class="assumption-label">Startvermögen nach Nebenkosten</p>
                   <p id="out-start-equity">-</p>
                 </article>
                 <article>
@@ -896,6 +897,7 @@ let liquidityViewMode: LiquidityViewMode = 'afterTaxChart'
 let heroSlideIndex = 0
 let heroSlideIntervalId: number | null = null
 let latestProjectionResult: ProjectionResult | null = null
+let activeWealthPathIndex: number | null = null
 let isLiquidityModalOpen = false
 let isCustomerLinkModalOpen = false
 
@@ -1218,7 +1220,7 @@ function renderProjection(): void {
   setText('out-wealth20', formatCurrency(result.wealth20))
   setText(
     'out-wealth-gain',
-    `Vermögenszuwachs ggü. Startkapital: ${formatSignedCurrency(result.wealthGain20)}`,
+    `Vermögenszuwachs ggü. Startvermögen: ${formatSignedCurrency(result.wealthGain20)}`,
   )
   setText('out-object-value', formatCurrency(result.projectedValue20))
   setOptionalText('out-final-debt', formatCurrency(result.finalRemainingDebt))
@@ -1226,7 +1228,7 @@ function renderProjection(): void {
   setText('out-growth-rate', `${formatSignedPercent(result.annualGrowthRate * 100)} % pro Jahr`)
   setText('out-equity-amount', formatCurrency(result.startEquity))
   setText('out-path-end', formatCurrency(result.wealth20))
-  setText('out-start-equity', formatCurrency(result.startEquity))
+  setText('out-start-equity', formatCurrency(result.initialNetWealth))
   setText(
     'out-total-investment',
     `${formatCurrency(result.totalInvestment)} (inkl. ${formatCurrency(result.ancillaryCosts)} Nebenkosten = ${formatPercent(
@@ -1245,7 +1247,7 @@ function renderProjection(): void {
   renderComparisonCard(result)
   renderLiquidityView(result)
   renderWealthPath(result.yearlyWealthPath, appMode === 'admin' ? result.yearlyDepotPath : null)
-  renderWealthComposition(result)
+  renderWealthComposition(result, activeWealthPathIndex)
   syncUrlState()
 }
 
@@ -1270,6 +1272,7 @@ function calculateProjection(
   const totalInvestment = apartment.purchasePrice + ancillaryCosts
 
   const startEquity = clamp(selectedEquity, equityBounds.min, Math.min(equityBounds.max, totalInvestment))
+  const initialNetWealth = startEquity - ancillaryCosts
   const debtNeeded = Math.max(totalInvestment - startEquity, 0)
   const kfwLoan = Math.min(debtNeeded, assumptions.kfwLoanAmount)
   const bankLoan = Math.max(debtNeeded - kfwLoan, 0)
@@ -1300,8 +1303,8 @@ function calculateProjection(
   let afaPhaseOneYears = 0
   let afaPhaseTwoYears = 0
   let postAfaYears = 0
-  const yearlyWealthPath: number[] = []
-  const yearlyDepotPath: number[] = []
+  const yearlyWealthPath: number[] = [initialNetWealth]
+  const yearlyDepotPath: number[] = [startEquity]
   const yearlyLiquidityRows: YearlyLiquidityRow[] = []
   let depotBalance = startEquity
 
@@ -1418,7 +1421,7 @@ function calculateProjection(
 
   const projectedValue20 = apartment.purchasePrice * Math.pow(1 + annualGrowthRate, assumptions.years)
   const wealth20 = projectedValue20 - remainingDebt + cumulativeCashflow20
-  const wealthGain20 = wealth20 - startEquity
+  const wealthGain20 = wealth20 - initialNetWealth
   const grossYield = (annualBaseRent / apartment.purchasePrice) * 100
   const yearOneOperatingCosts =
     annualBaseRent * assumptions.vacancyRate + annualManagementCostsFull + annualMaintenanceCostsFull
@@ -1440,6 +1443,7 @@ function calculateProjection(
     marginalTaxRate,
     annualGrowthRate,
     startEquity,
+    initialNetWealth,
     totalInvestment,
     ancillaryCosts,
     initialDebt,
@@ -1544,33 +1548,54 @@ function renderComparisonCard(result: ProjectionResult): void {
   noteEl.textContent = `Differenz nach ${projectionYears} Jahren: ${formatCurrency(Math.abs(diff))} zugunsten der ${diff >= 0 ? 'Immobilie' : 'Depot-Alternative'}`
 }
 
-function renderWealthComposition(result: ProjectionResult): void {
+function renderWealthComposition(result: ProjectionResult, focusIndex: number | null = null): void {
   const el = getElementById<HTMLDivElement>('wealth-composition')
-  const rows = [
-    { label: `Objektwert in ${projectionYears} Jahren`, value: result.projectedValue20 },
-    { label: 'Kumulierter Cashflow', value: result.cumulativeCashflow20 },
-    { label: 'Restschuld', value: -result.finalRemainingDebt },
+  const displayIndex = focusIndex ?? result.yearlyWealthPath.length - 1
+  const snapshot =
+    displayIndex === 0
+      ? {
+          headline: 'Stand bei Erwerb',
+          propertyValueLabel: 'Objektwert bei Erwerb',
+          propertyValue: result.apartment.purchasePrice,
+          cumulativeCashflow: 0,
+          remainingDebt: result.initialDebt,
+          netWealth: result.initialNetWealth,
+        }
+      : (() => {
+          const row = result.yearlyLiquidityRows[displayIndex - 1]
+          return {
+            headline: `Stand nach ${displayIndex} ${displayIndex === 1 ? 'Jahr' : 'Jahren'}`,
+            propertyValueLabel: `Objektwert nach ${displayIndex} ${displayIndex === 1 ? 'Jahr' : 'Jahren'}`,
+            propertyValue: row.propertyValue,
+            cumulativeCashflow: row.cumulativeCashflow,
+            remainingDebt: row.remainingDebt,
+            netWealth: row.netWealth,
+          }
+        })()
+  const resultRows = [
+    { label: snapshot.propertyValueLabel, value: snapshot.propertyValue },
+    { label: 'Kumulierter Cashflow', value: snapshot.cumulativeCashflow },
+    { label: 'Restschuld', value: -snapshot.remainingDebt },
   ]
 
   el.innerHTML = `
     <p class="composition-title">So setzt sich das Ergebnis zusammen</p>
-    <p class="composition-copy">
-      Objektwert, kumulierter Cashflow und die verbleibende Restschuld ergeben zusammen das
-      ausgewiesene Nettovermögen.
-    </p>
-    <div class="composition-rows">
-      ${rows
-        .map(
-          (row) => `
-        <div class="composition-row">
-          <span>${row.label}</span>
-          <span class="${getToneClass(row.value)}">${formatSignedCurrency(row.value)}</span>
-        </div>`,
-        )
-        .join('')}
-      <div class="composition-row composition-total">
-        <span>Nettovermögen</span>
-        <span>${formatCurrency(result.wealth20)}</span>
+    <div class="composition-group">
+      <p class="composition-subtitle">${snapshot.headline}</p>
+      <div class="composition-rows">
+        ${resultRows
+          .map(
+            (row) => `
+          <div class="composition-row">
+            <span>${row.label}</span>
+            <span class="${getToneClass(row.value)}">${formatSignedCurrency(row.value)}</span>
+          </div>`,
+          )
+          .join('')}
+        <div class="composition-row composition-total">
+          <span>Nettovermögen</span>
+          <span>${formatCurrency(snapshot.netWealth)}</span>
+        </div>
       </div>
     </div>
   `
@@ -1590,20 +1615,47 @@ function renderWealthPath(propertyValues: number[], depotValues: number[] | null
       const markerMarkup = depotValue === null
         ? ''
         : `<span class="path-depot-marker" style="bottom: ${Math.max((Math.abs(depotValue) / maxAbs) * 100, 1).toFixed(2)}%"></span>`
+      const label = index === 0 ? '0' : String(index)
       const title = depotValue === null
-        ? `Jahr ${index + 1}: ${formatCurrency(value)} Nettovermögen`
-        : `Jahr ${index + 1}: Immobilie ${formatCurrency(value)} | Depot ${formatCurrency(depotValue)}`
+        ? `${index === 0 ? 'Start' : `Jahr ${index}`}: ${formatCurrency(value)} Nettovermögen`
+        : `${index === 0 ? 'Start' : `Jahr ${index}`}: Immobilie ${formatCurrency(value)} | Depot ${formatCurrency(depotValue)}`
+      const activeClass = activeWealthPathIndex === index ? ' path-col-active' : ''
       return `
-        <div class="path-col" title="${title}">
+        <div class="path-col${activeClass}" data-wealth-index="${index}" tabindex="0" title="${title}">
           <span class="path-bar-wrap">
             <span class="path-bar ${toneClass}" style="height: ${height.toFixed(2)}%"></span>
             ${markerMarkup}
           </span>
-          <span class="path-year">${index + 1}</span>
+          <span class="path-year">${label}</span>
         </div>
       `
     })
     .join('')
+
+  const syncComposition = (index: number | null): void => {
+    activeWealthPathIndex = index
+    if (latestProjectionResult) {
+      renderWealthComposition(latestProjectionResult, activeWealthPathIndex)
+    }
+    pathElement.querySelectorAll<HTMLElement>('.path-col').forEach((col) => {
+      const isActive = index !== null && Number(col.dataset.wealthIndex) == index
+      col.classList.toggle('path-col-active', isActive)
+    })
+  }
+
+  pathElement.querySelectorAll<HTMLElement>('.path-col').forEach((col) => {
+    const index = Number(col.dataset.wealthIndex)
+    col.addEventListener('mouseenter', () => syncComposition(index))
+    col.addEventListener('focus', () => syncComposition(index))
+  })
+
+  pathElement.addEventListener('mouseleave', () => syncComposition(null))
+  pathElement.addEventListener('focusout', (event) => {
+    const nextTarget = event.relatedTarget
+    if (!(nextTarget instanceof Node) || !pathElement.contains(nextTarget)) {
+      syncComposition(null)
+    }
+  })
 }
 
 function renderLiquidityView(result: ProjectionResult): void {
@@ -1678,31 +1730,67 @@ function renderLiquidityTable(result: ProjectionResult): string {
     result.yearlyLiquidityRows[result.yearlyLiquidityRows.length - 1]?.calendarYear ??
     assumptions.purchaseYear + projectionYears - 1
   let cumulativeAfterTax = 0
+  let totalRent = 0
+  let totalInterest = 0
+  let totalPrincipal = 0
+  let totalAncillaryCost = 0
+  let totalTaxBenefit = 0
+  let totalLiquidityBeforeTax = 0
+  let totalLiquidityAfterTax = 0
 
   const rows = result.yearlyLiquidityRows
     .map((row) => {
-      const totalInterest = row.kfwInterest + row.bankInterest + row.refinanceInterest
-      const totalPrincipal = row.kfwPrincipal + row.bankPrincipal + row.refinancePrincipal
-      const totalAncillaryCost = row.vacancyCost + row.managementCost + row.maintenanceCost
+      const yearlyInterest = row.kfwInterest + row.bankInterest + row.refinanceInterest
+      const yearlyPrincipal = row.kfwPrincipal + row.bankPrincipal + row.refinancePrincipal
+      const yearlyAncillaryCost = row.vacancyCost + row.managementCost + row.maintenanceCost
       const liquidityBeforeTax = row.cashflow - row.taxBenefit
       const liquidityAfterTax = row.cashflow
       cumulativeAfterTax += liquidityAfterTax
+      totalRent += row.grossRent
+      totalInterest += yearlyInterest
+      totalPrincipal += yearlyPrincipal
+      totalAncillaryCost += yearlyAncillaryCost
+      totalTaxBenefit += row.taxBenefit
+      totalLiquidityBeforeTax += liquidityBeforeTax
+      totalLiquidityAfterTax += liquidityAfterTax
 
       return `
         <tr>
           <td>${row.calendarYear}</td>
           <td class="${getToneClass(row.grossRent)}">${formatSignedCurrency(row.grossRent)}</td>
-          <td class="${getToneClass(-totalInterest)}">${formatSignedCurrency(-totalInterest)}</td>
-          <td class="${getToneClass(-totalPrincipal)}">${formatSignedCurrency(-totalPrincipal)}</td>
-          <td class="${getToneClass(-totalAncillaryCost)}">${formatSignedCurrency(-totalAncillaryCost)}</td>
+          <td class="${getToneClass(-yearlyInterest)}">${formatSignedCurrency(-yearlyInterest)}</td>
+          <td class="${getToneClass(-yearlyPrincipal)}">${formatSignedCurrency(-yearlyPrincipal)}</td>
+          <td class="${getToneClass(-row.remainingDebt)}">${formatSignedCurrency(-row.remainingDebt)}</td>
+          <td class="${getToneClass(-yearlyAncillaryCost)}">${formatSignedCurrency(-yearlyAncillaryCost)}</td>
           <td class="${getToneClass(row.taxBenefit)}">${formatSignedCurrency(row.taxBenefit)}</td>
           <td class="${getToneClass(liquidityBeforeTax)}">${formatSignedCurrency(liquidityBeforeTax)}</td>
           <td class="${getToneClass(liquidityAfterTax)}">${formatSignedCurrency(liquidityAfterTax)}</td>
           <td class="${getToneClass(cumulativeAfterTax)}">${formatSignedCurrency(cumulativeAfterTax)}</td>
+          <td class="${getToneClass(row.propertyValue)}">${formatSignedCurrency(row.propertyValue)}</td>
         </tr>
       `
     })
     .join('')
+
+  const finalRow = result.yearlyLiquidityRows[result.yearlyLiquidityRows.length - 1]
+  const summaryRow = finalRow
+    ? `
+        <tfoot>
+          <tr class="liquidity-detail-summary-row">
+            <td>Summe</td>
+            <td class="${getToneClass(totalRent)}">${formatSignedCurrency(totalRent)}</td>
+            <td class="${getToneClass(-totalInterest)}">${formatSignedCurrency(-totalInterest)}</td>
+            <td class="${getToneClass(-totalPrincipal)}">${formatSignedCurrency(-totalPrincipal)}</td>
+            <td class="${getToneClass(-finalRow.remainingDebt)}">${formatSignedCurrency(-finalRow.remainingDebt)}</td>
+            <td class="${getToneClass(-totalAncillaryCost)}">${formatSignedCurrency(-totalAncillaryCost)}</td>
+            <td class="${getToneClass(totalTaxBenefit)}">${formatSignedCurrency(totalTaxBenefit)}</td>
+            <td class="${getToneClass(totalLiquidityBeforeTax)}">${formatSignedCurrency(totalLiquidityBeforeTax)}</td>
+            <td class="${getToneClass(totalLiquidityAfterTax)}">${formatSignedCurrency(totalLiquidityAfterTax)}</td>
+            <td class="${getToneClass(cumulativeAfterTax)}">${formatSignedCurrency(cumulativeAfterTax)}</td>
+            <td class="${getToneClass(finalRow.propertyValue)}">${formatSignedCurrency(finalRow.propertyValue)}</td>
+          </tr>
+        </tfoot>`
+    : ''
 
   return `
     <div class="liquidity-table-card liquidity-table-card-modal">
@@ -1710,6 +1798,10 @@ function renderLiquidityTable(result: ProjectionResult): string {
         <div>
           <p class="liquidity-chart-title">Jährliche Liquiditätsdetails</p>
           <p class="liquidity-chart-copy">${startYear} bis ${endYear} mit allen Jahreswerten.</p>
+        </div>
+        <div class="liquidity-table-summary">
+          <p class="liquidity-table-summary-label">Startvermögen bei Erwerb</p>
+          <p class="liquidity-table-summary-value">${formatCurrency(result.startEquity)} - ${formatCurrency(result.ancillaryCosts)} = ${formatCurrency(result.initialNetWealth)}</p>
         </div>
       </div>
       <div class="liquidity-table-scroll liquidity-table-scroll-modal">
@@ -1719,15 +1811,18 @@ function renderLiquidityTable(result: ProjectionResult): string {
               <th>Jahr</th>
               <th>Miete</th>
               <th>Zins</th>
-              <th>Tilgung</th>
-              <th>Nebenkosten</th>
+              <th>Tilg.</th>
+              <th>Restsch.</th>
+              <th>Nebenk.</th>
               <th>Steuer</th>
-              <th>Liqui v. St.</th>
-              <th>Liqui n. St.</th>
-              <th>Kumuliert</th>
+              <th>Cashflow v. St.</th>
+              <th>Cashflow n. St.</th>
+              <th>Kum.</th>
+              <th>Immo-Wert</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
+          ${summaryRow}
         </table>
       </div>
     </div>

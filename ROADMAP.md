@@ -19,10 +19,15 @@
   - Kundenänderungen zu Hause bleiben rein lokal und überschreiben niemals das gespeicherte Ausgangsszenario
 
 ## Priority 0A: Finanzielle Startlogik korrigieren
+- Status im Branch `berater-kundenversion`: umgesetzt und auf Montolio testbar.
 - Startvermögen, Nebenkosten und eingesetztes Eigenkapital auf eine konsistente Definition bringen.
 - Kaufpreis bleibt Objektwertbasis, Nebenkosten werden als separater Vermögenseffekt modelliert.
 - Feste Regel: Wenn `Nebenkosten < EK-Einsatz`, startet das Vermögen mit `EK-Einsatz - Nebenkosten`.
 - Vermögenspfad, Ergebniskennzahlen und Detailtabelle müssen denselben fachlichen Startpunkt nutzen.
+- Aktueller Stand:
+  - Vermögenszuwachs bezieht sich auf `Startvermögen` statt `Startkapital`.
+  - Das Vermögensdiagramm zeigt einen Startpunkt `0` mit Nebenkosten-Effekt.
+  - Die Vermögenszusammensetzung reagiert auf Hover/Fokus im Diagramm.
 
 ## Active Issues
 - Issue `#1`: PDF-Ausgabe grundlegend überarbeiten und versandfähig machen
@@ -88,11 +93,16 @@
   - financing and tax assumptions
 
 ## Priority 1A: Detailtabelle fachlich vervollständigen
+- Status im Branch `berater-kundenversion`: weitgehend umgesetzt.
 - Ergänze unter `Jährliche Einnahmen und Ausgaben` eine Summenzeile für alle Geldspalten.
 - Ergänze mindestens zwei neue Vermögensspalten:
   - `Immobilienwert`
   - `Restschuld`
 - Prüfe zusätzlich eine Spalte `Nettovermögen`, wenn dies die Lesbarkeit erhöht.
+- Aktueller Stand:
+  - Tabelle enthält `Restschuld` und `Immobilienwert`.
+  - Eine Abschlusszeile `Summe` ist sticky und unterscheidet Summen von Endständen.
+  - Header sind visuell verdichtet und Spaltenbreiten vereinheitlicht.
 
 ## Priority 1B: Prognosebereich klarer führen
 - `3. Prognose` typografisch auf das Niveau von Schritt 1 bringen.

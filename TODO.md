@@ -21,29 +21,30 @@
 
 ## P0: Finanzmodell für Eigenkapital und Startvermögen korrigieren
 - Issue `#3`: Eigenkapital sichtbar machen
-- Analyse:
-  - aktueller Code finanziert Nebenkosten implizit über `totalInvestment = purchasePrice + ancillaryCosts`
-  - der Vermögenspfad startet aber nicht explizit mit einem negativen Startwert aus den Nebenkosten
-  - `wealthGain20` zieht zwar das eingesetzte Eigenkapital ab, die laufende Vermögensdarstellung ist davon jedoch entkoppelt
-- Konkrete ToDos:
-  - Startvermögen formal definieren und im Modell konsistent machen
-  - Kaufpreis als Objektwert-Basis fix halten
-  - Nebenkosten als sofortigen Vermögenseffekt sichtbar machen
-  - feste Regel: wenn `Nebenkosten < EK-Einsatz`, startet das Vermögen mit `EK-Einsatz - Nebenkosten`
-  - Vermögenspfad, Kennzahlen und Tabelle auf denselben Startwert beziehen
-- Risiko:
-  - Issue ist fachlich relevant und betrifft die Kundenaussage direkt
+- Status:
+  - im Branch `berater-kundenversion` umgesetzt
+  - noch nicht in `main`
+- Erledigt:
+  - Startvermögen als `EK-Einsatz - Nebenkosten` definiert
+  - Vermögenszuwachs bezieht sich auf `Startvermögen`
+  - Vermögensdiagramm startet bei `0` und zeigt damit den Erwerbseffekt sichtbar
+  - Zusammensetzung unter dem Diagramm folgt Hover/Fokus und springt sonst auf das Endjahr zurück
+- Offener Rest:
+  - fachliche Gegenprüfung nach Merge in `main`
 
 ## P1: Detailtabelle fachlich vervollständigen
 - Issue `#4`: Jährliche Einnahmen und Ausgaben anpassen
-- Analyse:
-  - Tabelle hat aktuell keine Summenzeile
-  - Immobilienwert und Restschuld fehlen als Vermögensspalten
-- Konkrete ToDos:
-  - Summenzeile unter allen Spalten ergänzen
-  - `Immobilienwert` und `Restschuld` als letzte zwei Spalten ergänzen
-  - optional eine dritte Vermögensspalte `Nettovermögen` prüfen
-  - prüfen, ob Summenzeile im Modal sticky oder am Tabellenende stehen soll
+- Status:
+  - im Branch `berater-kundenversion` weitgehend umgesetzt
+  - noch nicht in `main`
+- Erledigt:
+  - `Restschuld` ergänzt
+  - `Immobilienwert` ergänzt
+  - sticky Zeile `Summe` ergänzt
+  - kompaktere Header und vereinheitlichte Spaltenbreiten umgesetzt
+- Offener Rest:
+  - prüfen, ob zusätzlich `Nettovermögen` als letzte Spalte sinnvoll ist
+  - prüfen, ob Summenzeile mobil noch kompakter werden soll
 
 ## P1: Prognosebereich verständlicher machen
 - Issue `#5`: Prognose deutlicher machen
