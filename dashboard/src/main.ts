@@ -288,81 +288,134 @@ const initialCustomerIdentity = mergeCustomerIdentity(
 const app = getElementById<HTMLDivElement>('app')
 
 app.innerHTML = `
-  <details class="config-menu"${appMode === 'customer' ? ' hidden' : ''}>
-    <summary class="config-toggle">Parameter</summary>
-    <div class="config-panel">
-      <div class="config-panel-header">
-        <div>
-          <p class="config-panel-title">Rechenparameter</p>
+  <button id="open-config-editor" class="config-toggle" type="button"${appMode === 'customer' ? ' hidden' : ''}>Parameter-Editor</button>
+
+  <div id="config-editor" class="config-editor" aria-hidden="true"${appMode === 'customer' ? ' hidden' : ''}>
+    <div class="config-editor-backdrop" data-config-editor-close="true"></div>
+    <section
+      class="config-editor-shell"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="config-editor-title"
+    >
+      <header class="config-editor-head">
+        <div class="config-editor-intro">
+          <p class="eyebrow">Berater-Editor</p>
+          <h2 id="config-editor-title">Preset, Finanzierung und Steuerannahmen</h2>
           <p class="config-panel-copy">
-            Zins, Tilgung, Kaufpreis und Steuerannahmen direkt im UI anpassen. Änderungen gelten
-            lokal in diesem Browser, bis Sie sie zurücksetzen.
+            Dieser Editor steuert die Beraterversion und die daraus erzeugte Kundenversion. Änderungen gelten lokal,
+            bis Sie sie bewusst exportieren oder übernehmen.
           </p>
         </div>
-      </div>
+        <button
+          id="config-editor-close"
+          type="button"
+          class="liquidity-view-nav"
+          aria-label="Parameter-Editor schließen"
+        >
+          ×
+        </button>
+      </header>
 
-      <form id="config-form" class="config-form" autocomplete="off">
-        <details class="config-group" open>
-          <summary class="config-group-toggle">
-            <span>Preset</span>
-            <small>Dateiname und Bezeichnung für die exportierbare Kundenversion.</small>
-          </summary>
-          <div class="config-grid">
-            <label class="config-field">
-              <span class="config-field-label">Preset-ID</span>
-              <span class="config-field-hint">
-                Wird als Dateiname und URL-Parameter genutzt, z. B. york-living-aerzte-01.
-              </span>
-              <div class="config-input-wrap">
-                <input
-                  id="preset-id"
-                  class="config-input"
-                  type="text"
-                  inputmode="text"
-                  spellcheck="false"
-                  autocomplete="off"
-                  placeholder="york-living-aerzte-01"
-                />
+      <div class="config-editor-layout">
+        <aside class="config-sidebar">
+          <section class="config-sidebar-card">
+            <div class="config-sidebar-block">
+              <div>
+                <p class="config-panel-title">Preset und Kundenvorschau</p>
+                <p class="config-panel-copy">
+                  Definiert die exportierbare Kundenversion und lädt bestehende Presets direkt aus dem Projekt.
+                </p>
               </div>
-            </label>
-            <label class="config-field">
-              <span class="config-field-label">Preset-Name</span>
-              <span class="config-field-hint">Interne Bezeichnung für diese Kundenversion.</span>
-              <div class="config-input-wrap">
-                <input
-                  id="preset-label"
-                  class="config-input"
-                  type="text"
-                  autocomplete="off"
-                  placeholder="York Living Ärzte 01"
-                />
+              <div class="config-grid config-grid-compact">
+                <label class="config-field">
+                  <span class="config-field-label">Preset-ID</span>
+                  <span class="config-field-hint">
+                    Wird als Dateiname und URL-Parameter genutzt, z. B. york-living-aerzte-01.
+                  </span>
+                  <div class="config-input-wrap">
+                    <input
+                      id="preset-id"
+                      class="config-input"
+                      type="text"
+                      inputmode="text"
+                      spellcheck="false"
+                      autocomplete="off"
+                      placeholder="york-living-aerzte-01"
+                    />
+                  </div>
+                </label>
+                <label class="config-field">
+                  <span class="config-field-label">Preset-Name</span>
+                  <span class="config-field-hint">Interne Bezeichnung für diese Kundenversion.</span>
+                  <div class="config-input-wrap">
+                    <input
+                      id="preset-label"
+                      class="config-input"
+                      type="text"
+                      autocomplete="off"
+                      placeholder="York Living Ärzte 01"
+                    />
+                  </div>
+                </label>
               </div>
-            </label>
-          </div>
-          <div class="config-toolbar">
-            <label class="config-field config-field-grow">
-              <span class="config-field-label">Gespeichertes Preset</span>
-              <span class="config-field-hint">Lädt eine vorhandene Preset-Datei aus public/presets.</span>
-              <select id="preset-selector" class="config-select">${renderPresetManifestOptions(presetManifest, activePresetId)}</select>
-            </label>
-            <div class="config-toolbar-actions">
-              <button id="load-preset" class="btn btn-secondary btn-compact" type="button">Preset laden</button>
-              <button id="preview-preset" class="btn btn-secondary btn-compact" type="button">Kundenvorschau</button>
             </div>
-          </div>
-        </details>
-        <div class="config-section-list">${renderConfigSections(configSections, config)}</div>
-      </form>
 
-      <div class="config-actions">
-        <button id="apply-config" class="btn btn-primary btn-compact" type="button">Übernehmen</button>
-        <button id="reset-config" class="btn btn-secondary btn-compact" type="button">Zurücksetzen</button>
-        <button id="copy-config" class="btn btn-secondary btn-compact" type="button">Preset JSON herunterladen</button>
+            <div class="config-toolbar">
+              <label class="config-field config-field-grow">
+                <span class="config-field-label">Gespeichertes Preset</span>
+                <span class="config-field-hint">Lädt eine vorhandene Preset-Datei aus public/presets.</span>
+                <select id="preset-selector" class="config-select">${renderPresetManifestOptions(presetManifest, activePresetId)}</select>
+              </label>
+              <div class="config-toolbar-actions config-toolbar-actions-split">
+                <button id="load-preset" class="btn btn-secondary btn-compact" type="button">Preset laden</button>
+                <button id="preview-preset" class="btn btn-secondary btn-compact" type="button">Kundenvorschau</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="config-sidebar-card config-sidebar-card-muted">
+            <p class="config-panel-title">Aktueller Zuschnitt</p>
+            <div class="config-summary-list">
+              <div class="config-summary-item">
+                <span class="config-summary-label">Preset</span>
+                <strong id="config-summary-preset" class="config-summary-value">-</strong>
+              </div>
+              <div class="config-summary-item">
+                <span class="config-summary-label">Kundenszenario</span>
+                <strong id="config-summary-scenario" class="config-summary-value">-</strong>
+              </div>
+              <div class="config-summary-item">
+                <span class="config-summary-label">Zeitachse</span>
+                <strong id="config-summary-timing" class="config-summary-value">-</strong>
+              </div>
+              <div class="config-summary-item">
+                <span class="config-summary-label">AfA und Wachstum</span>
+                <strong id="config-summary-afa" class="config-summary-value">-</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="config-sidebar-card config-sidebar-card-actions">
+            <p class="config-panel-title">Aktionen</p>
+            <p class="config-panel-copy">
+              Kundenlinks werden immer aus dieser Beraterversion erzeugt und öffnen die reduzierte Kundenversion auf montolio.de.
+            </p>
+            <div class="config-actions">
+              <button id="apply-config" class="btn btn-primary btn-compact" type="button">Übernehmen</button>
+              <button id="reset-config" class="btn btn-secondary btn-compact" type="button">Zurücksetzen</button>
+              <button id="copy-config" class="btn btn-secondary btn-compact" type="button">Preset JSON herunterladen</button>
+            </div>
+            <p id="config-status" class="config-status" role="status" aria-live="polite"></p>
+          </section>
+        </aside>
+
+        <form id="config-form" class="config-form" autocomplete="off">
+          <div class="config-section-list">${renderConfigSections(configSections, config)}</div>
+        </form>
       </div>
-
-      <p id="config-status" class="config-status" role="status" aria-live="polite"></p>
-    </div>
-  </details>
+    </section>
+  </div>
 
   <main class="page">
     <section class="panel hero${appMode === 'customer' ? ' hero-customer' : ''}">
@@ -855,6 +908,9 @@ const taxTableInputs = Array.from(
 const growthInput = getElementById<HTMLInputElement>('growth-rate')
 const equityInput = getElementById<HTMLInputElement>('equity-amount')
 const shareStatus = getElementById<HTMLElement>('share-status')
+const openConfigEditorButton = getElementById<HTMLButtonElement>('open-config-editor')
+const configEditor = getElementById<HTMLDivElement>('config-editor')
+const configEditorCloseButton = getElementById<HTMLButtonElement>('config-editor-close')
 const configForm = getElementById<HTMLFormElement>('config-form')
 const configStatus = getElementById<HTMLElement>('config-status')
 const presetIdInput = getElementById<HTMLInputElement>('preset-id')
@@ -900,6 +956,7 @@ let latestProjectionResult: ProjectionResult | null = null
 let activeWealthPathIndex: number | null = null
 let isLiquidityModalOpen = false
 let isCustomerLinkModalOpen = false
+let isConfigEditorOpen = false
 
 hydrateStateFromUrl()
 renderApartmentCards()
@@ -911,6 +968,7 @@ presetIdInput.value = activePreset.id
 presetLabelInput.value = activePreset.label
 customerFirstNameInput.value = initialCustomerIdentity.firstName
 customerLastNameInput.value = initialCustomerIdentity.lastName
+renderConfigEditorSummary()
 renderHeroSlide()
 startHeroAutoplay()
 if (shouldUseStoredConfig && hasStoredConfig()) {
@@ -970,6 +1028,11 @@ presetIdInput.addEventListener('input', () => {
     .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '')
   presetIdInput.value = normalized
+  renderConfigEditorSummary()
+})
+
+presetLabelInput.addEventListener('input', () => {
+  renderConfigEditorSummary()
 })
 
 loadPresetButton.addEventListener('click', () => {
@@ -996,6 +1059,26 @@ previewPresetButton.addEventListener('click', () => {
     resolveDraftCustomerIdentity(),
   )
   window.open(previewUrl, '_blank', 'noopener,noreferrer')
+})
+
+openConfigEditorButton.addEventListener('click', () => {
+  openConfigEditor()
+})
+
+configEditorCloseButton.addEventListener('click', () => {
+  closeConfigEditor()
+})
+
+configEditor.addEventListener('click', (event) => {
+  const target = event.target
+  if (!(target instanceof HTMLElement)) {
+    return
+  }
+  const closeTrigger = target.closest<HTMLElement>('[data-config-editor-close="true"]')
+  if (!closeTrigger) {
+    return
+  }
+  closeConfigEditor()
 })
 
 copyScenarioButton.addEventListener('click', () => {
@@ -1111,10 +1194,13 @@ document.addEventListener('keydown', (event) => {
     closeCustomerLinkModal()
     return
   }
-  if (!isLiquidityModalOpen) {
+  if (isLiquidityModalOpen) {
+    dismissLiquidityTableModal()
     return
   }
-  dismissLiquidityTableModal()
+  if (isConfigEditorOpen) {
+    closeConfigEditor()
+  }
 })
 
 liquidityViewToggleButton.addEventListener('click', () => {
@@ -1242,6 +1328,7 @@ function renderProjection(): void {
   setText('out-tax-label', `Steuer laut ${getTaxTableLabel(result.taxTableMode)}`)
   setText('out-refinance-debt', formatCurrency(result.refinanceDebtBase))
   updateConsultationMailLink(result)
+  renderConfigEditorSummary()
 
   renderBudgetCard(result)
   renderComparisonCard(result)
@@ -1855,6 +1942,48 @@ function closeLiquidityModal(): void {
   syncBodyModalState()
 }
 
+function openConfigEditor(): void {
+  if (appMode === 'customer') {
+    return
+  }
+
+  configEditor.classList.add('config-editor-open')
+  configEditor.setAttribute('aria-hidden', 'false')
+  isConfigEditorOpen = true
+  syncBodyModalState()
+}
+
+function closeConfigEditor(): void {
+  if (!isConfigEditorOpen) {
+    return
+  }
+
+  configEditor.classList.remove('config-editor-open')
+  configEditor.setAttribute('aria-hidden', 'true')
+  isConfigEditorOpen = false
+  syncBodyModalState()
+}
+
+function renderConfigEditorSummary(): void {
+  const selectedApartment = getApartment(selectedApartmentId)
+  const presetLabel = presetLabelInput.value.trim() || activePreset.label
+  const presetId = presetIdInput.value.trim() || activePresetId
+
+  setOptionalText('config-summary-preset', `${presetLabel} (${presetId})`)
+  setOptionalText(
+    'config-summary-scenario',
+    `${selectedApartment.label} · ${formatCurrency(annualGrossIncome)} · ${getTaxTableLabel(selectedTaxTableMode)}`,
+  )
+  setOptionalText(
+    'config-summary-timing',
+    `Kauf ${config.assumptions.purchaseYear} · Miete ab Q${config.assumptions.rentStartQuarter} ${config.assumptions.rentStartYear}`,
+  )
+  setOptionalText(
+    'config-summary-afa',
+    `AfA ab Q${config.assumptions.afaStartQuarter} ${config.assumptions.afaStartYear} · Wachstum ${formatSignedPercent(annualGrowthRatePercent)} %`,
+  )
+}
+
 function openCustomerLinkModal(): void {
   if (appMode === 'customer') {
     return
@@ -1885,7 +2014,7 @@ function setCustomerLinkModalStatus(message: string, isError = false): void {
 }
 
 function syncBodyModalState(): void {
-  document.body.classList.toggle('body-modal-open', isLiquidityModalOpen || isCustomerLinkModalOpen)
+  document.body.classList.toggle('body-modal-open', isLiquidityModalOpen || isCustomerLinkModalOpen || isConfigEditorOpen)
 }
 
 function advanceLiquidityView(): void {
