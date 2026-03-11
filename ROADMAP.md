@@ -167,6 +167,14 @@
   - content changes without touching calculation code
   - calculation changes without touching UI markup
 
+## Operational Asset: Delivery Skill
+- Repo-local skill added: `skills/yorkliving-delivery-playbook/SKILL.md`.
+- Purpose:
+  - keep advisor/customer delivery rules stable
+  - preserve branch/domain mapping during deploys
+  - document the customer snapshot workflow and rollout checks
+- `install-repo-skills.ps1` now syncs this skill into the local Codex skill directory for collaborators.
+
 ## Priority 5: Property Onboarding Workflow
 - Create a repeatable checklist for new properties:
   1. Copy project template folder

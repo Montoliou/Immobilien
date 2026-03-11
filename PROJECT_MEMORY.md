@@ -32,6 +32,16 @@
 - `codex-vorschlaege` was the previous Montolio test branch on `montolio.de/YorkLiving`.
 - `berater-kundenversion` is the current Montolio test branch on `montolio.de/YorkLiving` until superseded.
 - Do not mix these targets during deploys. Always confirm which branch/domain pairing is intended before publishing.
+- Runtime mode is domain-bound:
+  - `mlp-mediziner-beratung.de` must open the advisor mode
+  - `montolio.de` must open the customer mode
+
+## Learned Workflow Patterns
+- Customer links are generated from the advisor version only.
+- Customer scenarios should be persisted as server-side JSON snapshots, not long query-string payloads.
+- Full-screen parameter editing works better than a corner drawer for advisor preparation.
+- Always state the local dev URL explicitly after changes; the fixed local target is `http://127.0.0.1:5174/`.
+- Repo-local reusable skill created: `skills/yorkliving-delivery-playbook/SKILL.md`.
 
 ## Working Conventions
 - Main implementation path: `dashboard/src/`.

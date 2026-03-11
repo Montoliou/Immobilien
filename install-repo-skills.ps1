@@ -8,7 +8,8 @@ $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.c
 $codexSkillRoot = Join-Path $codexHome 'skills'
 $sharedSkills = @(
   'mlp-design-guide-v3',
-  'finanz-audit-skill'
+  'finanz-audit-skill',
+  'yorkliving-delivery-playbook'
 )
 
 if (-not (Test-Path $sourceRoot)) {
