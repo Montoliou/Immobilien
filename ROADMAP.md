@@ -5,6 +5,7 @@
 - Keep the calculation engine stable while swapping project content, assumptions, visuals, and timelines with minimal code changes.
 
 ## Priority 0: Live-Fähige Trennung von Berater- und Kundenversion
+- Status im Branch `berater-kundenversion`: technisch weitgehend umgesetzt und lokal reviewbar; Merge nach `main` und Live-Rollout stehen noch aus.
 - Stabilen Merge-Pfad zwischen `main` und `codex-vorschlaege` definieren.
 - Zielbild:
   - `main` bleibt Beraterversion auf `mlp-mediziner-beratung.de/YorkLiving`
@@ -105,15 +106,25 @@
   - Header sind visuell verdichtet und Spaltenbreiten vereinheitlicht.
 
 ## Priority 1B: Prognosebereich klarer führen
+- Status im Branch `berater-kundenversion`: umgesetzt und lokal reviewbar.
 - `3. Prognose` typografisch auf das Niveau von Schritt 1 bringen.
 - Kurz erklären, was der Kunde nacheinander tun soll und wann sich die rechte Seite aktualisiert.
 - Ergebnis-Kernaussage früher und verständlicher im Blick halten.
+- Aktueller Stand:
+  - Drei-Schritt-Leiste unter dem Hero ergänzt.
+  - Prognosebereich beginnt mit eigener Hauptüberschrift und klarer Leseanweisung.
+  - Dynamische Kernaussage bleibt direkt unter der Sektionsüberschrift sichtbar.
 
 ## Priority 1C: Parameter-Menü zum echten Editor ausbauen
+- Status im Branch `berater-kundenversion`: umgesetzt und lokal reviewbar.
 - Menü auf Desktop und Mobile vollflächig über die gesamte Höhe aufziehen.
 - Layout für schnelles Arbeiten im Beratungsmodus optimieren.
 - Kundenname als Teil des Beratungs-Workflows direkt im Editor vorbereiten.
 - Glassmorphism und Animation gezielt, aber nicht zulasten der Lesbarkeit einsetzen.
+- Aktueller Stand:
+  - Vollflächiger Berater-Editor mit separater Preset-Seitenleiste und scrollbarer Parameterfläche.
+  - Aktionsbereich, Kundenvorschau und Statusmeldungen sind vom Feldbereich getrennt.
+  - Editor nutzt weiche Overlays und bleibt auf Desktop wie Mobile vollflächig.
 
 ## Priority 1: Separate Property Content From Engine
 - Move all York-specific text blocks into a dedicated content file.
