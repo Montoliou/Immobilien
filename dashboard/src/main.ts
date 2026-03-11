@@ -196,6 +196,18 @@ type RuntimePreset = {
   scenarioDefaults: ScenarioDefaults
 }
 
+type CustomerIdentity = {
+  firstName: string
+  lastName: string
+}
+
+type CustomerScenarioSnapshot = {
+  id: string
+  createdAt: string
+  customer: CustomerIdentity
+  preset: RuntimePreset
+}
+
 type PresetManifestEntry = {
   id: string
   label: string
@@ -206,6 +218,8 @@ type PresetContext = {
   preset: RuntimePreset
   notice: string | null
   hasExplicitPresetParam: boolean
+  customerScenario: CustomerScenarioSnapshot | null
+  customerScenarioId: string | null
 }
 
 const CONFIG_STORAGE_KEY = 'york-living-runtime-config'
@@ -218,6 +232,14 @@ const CONSULTATION_PHONE_LABEL = 'Direkt anrufen: 0151/19690871'
 const CONSULTATION_PHONE_LINK = 'tel:+4915119690871'
 const BOOKING_URL = 'https://mlp-onlineberatung.flexperto.com/expert?id=782'
 const MAPS_URL = 'https://maps.app.goo.gl/t3fVRBvNyz42xWMp7'
+const ADVISOR_APP_ORIGIN = 'https://mlp-mediziner-beratung.de'
+const CUSTOMER_APP_ORIGIN = 'https://montolio.de'
+const CUSTOMER_SCENARIO_QUERY_KEY = 'customer'
+const CUSTOMER_FIRST_NAME_QUERY_KEY = 'first'
+const CUSTOMER_LAST_NAME_QUERY_KEY = 'last'
+const CUSTOMER_SCENARIO_DATA_ROOT = '/YorkLiving-data/customer-scenarios'
+const CUSTOMER_SCENARIO_API_PATH = '/api/create-customer-scenario.php'
+const LOCAL_APP_HOSTNAMES = new Set(['127.0.0.1', 'localhost'])
 const heroSlides: HeroSlide[] = [
   {
     image: '/project/hero-york-living-tomorrow.png',
@@ -245,6 +267,8 @@ const embeddedDefaultPreset = buildEmbeddedDefaultPreset(defaultConfigSource)
 const presetContext = await loadPresetContext(embeddedDefaultPreset)
 const activePreset = presetContext.preset
 const activePresetId = activePreset.id
+const activeCustomerScenario = presetContext.customerScenario
+const activeCustomerScenarioId = presetContext.customerScenarioId
 const presetManifest = await loadPresetManifest(activePreset)
 const appMode = presetContext.mode
 const defaultConfig = deepCloneConfig(activePreset.calculationConfig)
@@ -255,6 +279,10 @@ const apartments = config.apartments
 const assumptions = config.assumptions
 const projectionYears = assumptions.years
 const scenarioDefaults = normalizeScenarioDefaults(activePreset.scenarioDefaults, config)
+const initialCustomerIdentity = mergeCustomerIdentity(
+  readCustomerIdentityFromParams(new URLSearchParams(window.location.search)),
+  activeCustomerScenario?.customer ?? null,
+)
 
 const app = getElementById<HTMLDivElement>('app')
 
@@ -370,6 +398,7 @@ app.innerHTML = `
       <div class="hero-content">
         <p class="eyebrow">York Living Münster</p>
         <h1>Ihr Immobilien-Check in 60 Sekunden</h1>
+        <p id="customer-greeting" class="customer-greeting"${appMode === 'customer' && hasCustomerIdentity(initialCustomerIdentity) ? '' : ' hidden'}>${appMode === 'customer' && hasCustomerIdentity(initialCustomerIdentity) ? `Persönliche Berechnung für ${escapeHtml(formatCustomerDisplayName(initialCustomerIdentity))}` : ''}</p>
         <p class="lead">
           Wählen Sie einen Grundriss, geben Sie Ihr Bruttojahreseinkommen ein und erhalten Sie sofort eine
           transparente ${projectionYears}-Jahres-Prognose für Ihr mögliches Vermögen.
@@ -396,7 +425,7 @@ app.innerHTML = `
           >
             Lage auf Google Maps
           </a>
-          <button id="copy-scenario-link" class="btn btn-primary" type="button">Kunden-Link kopieren</button>
+          <button id="copy-scenario-link" class="btn btn-primary" type="button">Kundenlink generieren</button>
         </div>
         <p id="share-status" class="share-status" role="status" aria-live="polite"${appMode === 'customer' ? ' hidden' : ''}></p>
       </div>
@@ -463,6 +492,27 @@ app.innerHTML = `
 
         </div>
 
+        ${appMode === 'admin'
+          ? `
+        <div class="assumption-grid">
+          <article>
+            <p class="assumption-label">Eigenkapital für Nebenkosten</p>
+            <p id="out-start-equity">-</p>
+          </article>
+          <article>
+            <p class="assumption-label">Gesamtinvestition inkl. Nebenkosten</p>
+            <p id="out-total-investment">-</p>
+          </article>
+          <article>
+            <p id="out-tax-label" class="assumption-label">Steuer laut Grundtabelle</p>
+            <p id="out-tax-rate">-</p>
+          </article>
+          <article>
+            <p class="assumption-label">Restschuld bei Anschlussfinanzierung</p>
+            <p id="out-refinance-debt">-</p>
+          </article>
+        </div>`
+          : ''}
       </section>
 
       <section class="panel result-panel" aria-live="polite">
@@ -471,6 +521,23 @@ app.innerHTML = `
         <p id="out-wealth20" class="wealth-value">-</p>
         <p id="out-wealth-gain" class="wealth-subvalue">-</p>
 
+        ${appMode === 'admin'
+          ? `
+        <div id="budget-card" class="budget-card"></div>
+
+        <div id="comparison-card" class="comparison-card"></div>
+
+        <div class="metric-grid">
+          <article class="metric-card">
+            <p class="metric-label">Objektwert in ${projectionYears} Jahren</p>
+            <p id="out-object-value" class="metric-value">-</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-label">Kumulierter Cashflow (${projectionYears} Jahre)</p>
+            <p id="out-cashflow20" class="metric-value">-</p>
+          </article>
+        </div>`
+          : `
         <div class="result-primary">
           <div id="budget-card" class="budget-card"></div>
 
@@ -484,7 +551,7 @@ app.innerHTML = `
               <p id="out-final-debt" class="metric-value">-</p>
             </article>
           </div>
-        </div>
+        </div>`}
 
         <div class="liquidity-block">
           <div class="liquidity-head">
@@ -503,6 +570,18 @@ app.innerHTML = `
           <div id="liquidity-view-content" class="liquidity-view-content"></div>
         </div>
 
+        ${appMode === 'admin'
+          ? `
+        <div class="progress-wrap">
+          <div class="progress-meta">
+            <p>Vermögensentwicklung über ${projectionYears} Jahre</p>
+            <p id="out-path-end">-</p>
+          </div>
+          <div id="wealth-path" class="wealth-path"></div>
+        </div>
+
+        <div id="wealth-composition" class="wealth-composition"></div>`
+          : `
         <div class="progress-wrap">
           <div class="section-head">
             <div>
@@ -559,8 +638,7 @@ app.innerHTML = `
               <div id="comparison-card" class="comparison-card"></div>
             </div>
           </details>
-        </div>
-
+        </div>`}
       </section>
     </section>
 
@@ -658,6 +736,67 @@ app.innerHTML = `
     </section>
   </main>
 
+  <div id="customer-link-modal" class="dialog-modal" aria-hidden="true"${appMode === 'customer' ? ' hidden' : ''}>
+    <div class="dialog-modal-backdrop" data-customer-link-close="true"></div>
+    <section
+      class="dialog-modal-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="customer-link-modal-title"
+    >
+      <header class="dialog-modal-head">
+        <div>
+          <p class="eyebrow">Kundenlink</p>
+          <h3 id="customer-link-modal-title">Kundenszenario personalisieren</h3>
+        </div>
+        <button
+          id="customer-link-modal-close"
+          type="button"
+          class="liquidity-view-nav"
+          aria-label="Dialog schließen"
+        >
+          ×
+        </button>
+      </header>
+      <div class="dialog-modal-content">
+        <p class="lead dialog-modal-copy">
+          Geben Sie den Namen des Kunden jetzt direkt vor dem Generieren an. So bleibt der Link eindeutig zugeordnet.
+        </p>
+        <div class="config-grid dialog-modal-grid">
+          <label class="config-field">
+            <span class="config-field-label">Vorname Kunde</span>
+            <div class="config-input-wrap">
+              <input
+                id="customer-first-name"
+                class="config-input"
+                type="text"
+                autocomplete="off"
+                placeholder="Max"
+              />
+            </div>
+          </label>
+          <label class="config-field">
+            <span class="config-field-label">Nachname Kunde</span>
+            <div class="config-input-wrap">
+              <input
+                id="customer-last-name"
+                class="config-input"
+                type="text"
+                autocomplete="off"
+                placeholder="Mustermann"
+              />
+            </div>
+          </label>
+        </div>
+        <p id="customer-link-modal-status" class="config-status" role="status" aria-live="polite"></p>
+      </div>
+      <footer class="dialog-modal-actions">
+        <button id="customer-link-cancel" class="btn btn-secondary btn-compact" type="button">Abbrechen</button>
+        <button id="customer-link-confirm" class="btn btn-primary btn-compact" type="button">Kundenlink jetzt generieren</button>
+      </footer>
+    </section>
+  </div>
+
   <div id="liquidity-modal" class="liquidity-modal" aria-hidden="true">
     <div class="liquidity-modal-backdrop" data-liquidity-modal-close="true"></div>
     <section
@@ -719,6 +858,13 @@ const configForm = getElementById<HTMLFormElement>('config-form')
 const configStatus = getElementById<HTMLElement>('config-status')
 const presetIdInput = getElementById<HTMLInputElement>('preset-id')
 const presetLabelInput = getElementById<HTMLInputElement>('preset-label')
+const customerFirstNameInput = getElementById<HTMLInputElement>('customer-first-name')
+const customerLastNameInput = getElementById<HTMLInputElement>('customer-last-name')
+const customerLinkModal = getElementById<HTMLDivElement>('customer-link-modal')
+const customerLinkModalStatus = getElementById<HTMLElement>('customer-link-modal-status')
+const customerLinkModalCloseButton = getElementById<HTMLButtonElement>('customer-link-modal-close')
+const customerLinkCancelButton = getElementById<HTMLButtonElement>('customer-link-cancel')
+const customerLinkConfirmButton = getElementById<HTMLButtonElement>('customer-link-confirm')
 const presetSelector = getElementById<HTMLSelectElement>('preset-selector')
 const loadPresetButton = getElementById<HTMLButtonElement>('load-preset')
 const previewPresetButton = getElementById<HTMLButtonElement>('preview-preset')
@@ -751,6 +897,7 @@ let heroSlideIndex = 0
 let heroSlideIntervalId: number | null = null
 let latestProjectionResult: ProjectionResult | null = null
 let isLiquidityModalOpen = false
+let isCustomerLinkModalOpen = false
 
 hydrateStateFromUrl()
 renderApartmentCards()
@@ -760,6 +907,8 @@ writeGrowthInputValue(annualGrowthRatePercent)
 writeEquityInputValue(investedEquity)
 presetIdInput.value = activePreset.id
 presetLabelInput.value = activePreset.label
+customerFirstNameInput.value = initialCustomerIdentity.firstName
+customerLastNameInput.value = initialCustomerIdentity.lastName
 renderHeroSlide()
 startHeroAutoplay()
 if (shouldUseStoredConfig && hasStoredConfig()) {
@@ -832,31 +981,23 @@ loadPresetButton.addEventListener('click', () => {
 
 previewPresetButton.addEventListener('click', () => {
   const targetPresetId = sanitizePresetId(presetSelector.value) ?? activePresetId
-  window.open(buildPresetModeUrl('customer', targetPresetId), '_blank', 'noopener,noreferrer')
+  const previewUrl = buildScenarioUrl(
+    selectedApartmentId,
+    selectedTaxTableMode,
+    annualGrossIncome,
+    annualGrowthRatePercent,
+    investedEquity,
+    depotReturnRatePercent,
+    'customer',
+    targetPresetId,
+    null,
+    resolveDraftCustomerIdentity(),
+  )
+  window.open(previewUrl, '_blank', 'noopener,noreferrer')
 })
 
-copyScenarioButton.addEventListener('click', async () => {
-  try {
-    const scenarioUrl = buildScenarioUrl(
-      selectedApartmentId,
-      selectedTaxTableMode,
-      annualGrossIncome,
-      annualGrowthRatePercent,
-      investedEquity,
-      depotReturnRatePercent,
-      'customer',
-      requireDraftPresetId(),
-    )
-    const copied = await copyToClipboard(scenarioUrl)
-    setStatus(
-      copied
-        ? 'Kunden-Link mit Preset und Szenario wurde kopiert.'
-        : 'Kunden-Link konnte nicht automatisch kopiert werden.',
-    )
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
-    setStatus(message)
-  }
+copyScenarioButton.addEventListener('click', () => {
+  openCustomerLinkModal()
 })
 
 heroSlidePrevButton.addEventListener('click', () => {
@@ -873,6 +1014,72 @@ heroSlideshow.addEventListener('mouseenter', stopHeroAutoplay)
 heroSlideshow.addEventListener('mouseleave', startHeroAutoplay)
 heroSlideshow.addEventListener('focusin', stopHeroAutoplay)
 heroSlideshow.addEventListener('focusout', startHeroAutoplay)
+
+customerLinkModalCloseButton.addEventListener('click', () => {
+  closeCustomerLinkModal()
+})
+
+customerLinkCancelButton.addEventListener('click', () => {
+  closeCustomerLinkModal()
+})
+
+customerLinkConfirmButton.addEventListener('click', async () => {
+  setCustomerLinkModalStatus('')
+
+  try {
+    const customerIdentity = requireCustomerIdentity()
+    const scenario = await createCustomerScenarioLink(customerIdentity)
+    const copied = await copyToClipboard(scenario.customerUrl)
+    setStatus(
+      copied
+        ? 'Kundenlink wurde generiert und kopiert.'
+        : `Kundenlink wurde generiert: ${scenario.customerUrl}`,
+    )
+    closeCustomerLinkModal()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
+    if (!isLocalRuntime()) {
+      setCustomerLinkModalStatus(message, true)
+      return
+    }
+
+    try {
+      const previewUrl = buildScenarioUrl(
+        selectedApartmentId,
+        selectedTaxTableMode,
+        annualGrossIncome,
+        annualGrowthRatePercent,
+        investedEquity,
+        depotReturnRatePercent,
+        'customer',
+        requireDraftPresetId(),
+        null,
+        requireCustomerIdentity(),
+      )
+      const copied = await copyToClipboard(previewUrl)
+      const fallbackMessage = copied
+        ? `${message} Es wurde stattdessen eine lokale Vorschau-URL kopiert.`
+        : `${message} Lokale Vorschau: ${previewUrl}`
+      setStatus(fallbackMessage)
+      closeCustomerLinkModal()
+    } catch (fallbackError) {
+      const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : message
+      setCustomerLinkModalStatus(fallbackMessage, true)
+    }
+  }
+})
+
+customerLinkModal.addEventListener('click', (event) => {
+  const target = event.target
+  if (!(target instanceof HTMLElement)) {
+    return
+  }
+  const closeTrigger = target.closest<HTMLElement>('[data-customer-link-close="true"]')
+  if (!closeTrigger) {
+    return
+  }
+  closeCustomerLinkModal()
+})
 
 liquidityModalCloseButton.addEventListener('click', () => {
   dismissLiquidityTableModal()
@@ -895,7 +1102,14 @@ liquidityModal.addEventListener('click', (event) => {
 })
 
 document.addEventListener('keydown', (event) => {
-  if (event.key !== 'Escape' || !isLiquidityModalOpen) {
+  if (event.key !== 'Escape') {
+    return
+  }
+  if (isCustomerLinkModalOpen) {
+    closeCustomerLinkModal()
+    return
+  }
+  if (!isLiquidityModalOpen) {
     return
   }
   dismissLiquidityTableModal()
@@ -1007,7 +1221,8 @@ function renderProjection(): void {
     `Vermögenszuwachs ggü. Startkapital: ${formatSignedCurrency(result.wealthGain20)}`,
   )
   setText('out-object-value', formatCurrency(result.projectedValue20))
-  setText('out-final-debt', formatCurrency(result.finalRemainingDebt))
+  setOptionalText('out-final-debt', formatCurrency(result.finalRemainingDebt))
+  setOptionalText('out-cashflow20', formatCurrency(result.cumulativeCashflow20))
   setText('out-growth-rate', `${formatSignedPercent(result.annualGrowthRate * 100)} % pro Jahr`)
   setText('out-equity-amount', formatCurrency(result.startEquity))
   setText('out-path-end', formatCurrency(result.wealth20))
@@ -1029,7 +1244,7 @@ function renderProjection(): void {
   renderBudgetCard(result)
   renderComparisonCard(result)
   renderLiquidityView(result)
-  renderWealthPath(result.yearlyWealthPath)
+  renderWealthPath(result.yearlyWealthPath, appMode === 'admin' ? result.yearlyDepotPath : null)
   renderWealthComposition(result)
   syncUrlState()
 }
@@ -1361,19 +1576,28 @@ function renderWealthComposition(result: ProjectionResult): void {
   `
 }
 
-function renderWealthPath(propertyValues: number[]): void {
+function renderWealthPath(propertyValues: number[], depotValues: number[] | null = null): void {
   const pathElement = getElementById<HTMLDivElement>('wealth-path')
-  const maxAbs = Math.max(...propertyValues.map((value) => Math.abs(value)), 1)
+  const allValues = depotValues ? [...propertyValues, ...depotValues] : propertyValues
+  const maxAbs = Math.max(...allValues.map((value) => Math.abs(value)), 1)
   pathElement.style.setProperty('--year-count', String(propertyValues.length))
 
   pathElement.innerHTML = propertyValues
     .map((value, index) => {
       const height = Math.max((Math.abs(value) / maxAbs) * 100, 3)
       const toneClass = value >= 0 ? 'path-bar-positive' : 'path-bar-negative'
+      const depotValue = depotValues?.[index] ?? null
+      const markerMarkup = depotValue === null
+        ? ''
+        : `<span class="path-depot-marker" style="bottom: ${Math.max((Math.abs(depotValue) / maxAbs) * 100, 1).toFixed(2)}%"></span>`
+      const title = depotValue === null
+        ? `Jahr ${index + 1}: ${formatCurrency(value)} Nettovermögen`
+        : `Jahr ${index + 1}: Immobilie ${formatCurrency(value)} | Depot ${formatCurrency(depotValue)}`
       return `
-        <div class="path-col" title="Jahr ${index + 1}: ${formatCurrency(value)} Nettovermögen">
+        <div class="path-col" title="${title}">
           <span class="path-bar-wrap">
             <span class="path-bar ${toneClass}" style="height: ${height.toFixed(2)}%"></span>
+            ${markerMarkup}
           </span>
           <span class="path-year">${index + 1}</span>
         </div>
@@ -1521,8 +1745,8 @@ function openLiquidityModal(result: ProjectionResult): void {
 
   liquidityModal.classList.add('liquidity-modal-open')
   liquidityModal.setAttribute('aria-hidden', 'false')
-  document.body.classList.add('body-modal-open')
   isLiquidityModalOpen = true
+  syncBodyModalState()
 }
 
 function closeLiquidityModal(): void {
@@ -1532,8 +1756,41 @@ function closeLiquidityModal(): void {
 
   liquidityModal.classList.remove('liquidity-modal-open')
   liquidityModal.setAttribute('aria-hidden', 'true')
-  document.body.classList.remove('body-modal-open')
   isLiquidityModalOpen = false
+  syncBodyModalState()
+}
+
+function openCustomerLinkModal(): void {
+  if (appMode === 'customer') {
+    return
+  }
+
+  setCustomerLinkModalStatus('')
+  customerLinkModal.classList.add('dialog-modal-open')
+  customerLinkModal.setAttribute('aria-hidden', 'false')
+  isCustomerLinkModalOpen = true
+  syncBodyModalState()
+  window.setTimeout(() => customerFirstNameInput.focus(), 40)
+}
+
+function closeCustomerLinkModal(): void {
+  if (!isCustomerLinkModalOpen) {
+    return
+  }
+
+  customerLinkModal.classList.remove('dialog-modal-open')
+  customerLinkModal.setAttribute('aria-hidden', 'true')
+  isCustomerLinkModalOpen = false
+  syncBodyModalState()
+}
+
+function setCustomerLinkModalStatus(message: string, isError = false): void {
+  customerLinkModalStatus.textContent = message
+  customerLinkModalStatus.classList.toggle('config-status-error', isError)
+}
+
+function syncBodyModalState(): void {
+  document.body.classList.toggle('body-modal-open', isLiquidityModalOpen || isCustomerLinkModalOpen)
 }
 
 function advanceLiquidityView(): void {
@@ -1599,14 +1856,27 @@ function getLiquidityToggleLabel(viewMode: LiquidityViewMode): string {
 
 function syncUrlState(): void {
   const params = new URLSearchParams()
-  params.set('preset', activePresetId)
-  params.set('mode', appMode)
-  params.set('apartment', selectedApartmentId)
-  params.set('tax', selectedTaxTableMode)
-  params.set('gross', String(Math.round(annualGrossIncome)))
-  params.set('growth', String(annualGrowthRatePercent))
-  params.set('equity', String(Math.round(investedEquity)))
-  params.set('depot', String(depotReturnRatePercent))
+
+  if (activeCustomerScenarioId) {
+    params.set(CUSTOMER_SCENARIO_QUERY_KEY, activeCustomerScenarioId)
+  } else {
+    params.set('preset', activePresetId)
+    params.set('mode', appMode)
+
+    if (appMode === 'customer') {
+      appendCustomerIdentityParams(params, getCurrentCustomerIdentity())
+    }
+  }
+
+  appendScenarioParams(
+    params,
+    selectedApartmentId,
+    selectedTaxTableMode,
+    annualGrossIncome,
+    annualGrowthRatePercent,
+    investedEquity,
+    depotReturnRatePercent,
+  )
 
   const nextUrl = `${window.location.pathname}?${params.toString()}`
   window.history.replaceState(null, '', nextUrl)
@@ -1667,7 +1937,7 @@ function buildPresetModeUrl(targetMode: AppMode, presetId: string): string {
   const params = new URLSearchParams()
   params.set('preset', presetId)
   params.set('mode', targetMode)
-  return `${window.location.origin}${window.location.pathname}?${params.toString()}`
+  return buildAppUrl(targetMode, params)
 }
 
 function buildScenarioUrl(
@@ -1679,20 +1949,43 @@ function buildScenarioUrl(
   depotRatePercent: number,
   targetMode: AppMode = appMode,
   presetId: string = activePresetId,
+  customerScenarioId: string | null = activeCustomerScenarioId,
+  customerIdentity: CustomerIdentity | null = null,
 ): string {
   const params = new URLSearchParams()
-  params.set('preset', presetId)
-  params.set('mode', targetMode)
-  params.set('apartment', apartmentId)
-  params.set('tax', taxTableMode)
-  params.set('gross', String(Math.round(grossAnnualIncomeValue)))
-  params.set('growth', String(growthRatePercent))
-  params.set('equity', String(Math.round(equityAmount)))
-  params.set('depot', String(depotRatePercent))
-  return `${window.location.origin}${window.location.pathname}?${params.toString()}`
+
+  if (customerScenarioId) {
+    params.set(CUSTOMER_SCENARIO_QUERY_KEY, customerScenarioId)
+  } else {
+    params.set('preset', presetId)
+    params.set('mode', targetMode)
+
+    if (targetMode === 'customer') {
+      appendCustomerIdentityParams(params, customerIdentity)
+    }
+  }
+
+  appendScenarioParams(
+    params,
+    apartmentId,
+    taxTableMode,
+    grossAnnualIncomeValue,
+    growthRatePercent,
+    equityAmount,
+    depotRatePercent,
+  )
+
+  return buildAppUrl(targetMode, params)
+}
+
+function buildCustomerScenarioShareUrl(customerScenarioId: string): string {
+  const params = new URLSearchParams()
+  params.set(CUSTOMER_SCENARIO_QUERY_KEY, customerScenarioId)
+  return buildAppUrl('customer', params)
 }
 
 function updateConsultationMailLink(result: ProjectionResult): void {
+  const customerIdentity = getCurrentCustomerIdentity()
   const scenarioUrl = buildScenarioUrl(
     selectedApartmentId,
     selectedTaxTableMode,
@@ -1702,6 +1995,8 @@ function updateConsultationMailLink(result: ProjectionResult): void {
     depotReturnRatePercent,
     'customer',
     resolveDraftPresetId(),
+    activeCustomerScenarioId,
+    customerIdentity,
   )
   const subject = 'Beratung zum Immobilieninvestment York Living'
   const bodyLines = [
@@ -1710,6 +2005,13 @@ function updateConsultationMailLink(result: ProjectionResult): void {
     'bitte kontaktieren Sie mich zeitnah, um ein Beratungsgespräch zum Immobilieninvestment York Living zu vereinbaren.',
     '',
     'Meine aktuelle Berechnung:',
+  ]
+
+  if (hasCustomerIdentity(customerIdentity)) {
+    bodyLines.push(`- Kunde: ${formatCustomerDisplayName(customerIdentity)}`)
+  }
+
+  bodyLines.push(
     `- Wohnungsoption: ${result.apartment.label} (${result.apartment.subtitle})`,
     `- Steuertarif: ${getTaxTableLabel(result.taxTableMode)}`,
     `- Bruttojahreseinkommen: ${formatCurrency(result.annualGrossIncome)}`,
@@ -1717,7 +2019,8 @@ function updateConsultationMailLink(result: ProjectionResult): void {
     `- Eingesetztes Eigenkapital: ${formatCurrency(result.startEquity)}`,
     '',
     `Szenario-Link: ${scenarioUrl}`,
-  ]
+  )
+
   const body = bodyLines.join('\n')
   const query = `subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   consultationMailLink.href = `mailto:${CONSULTATION_EMAIL}?${query}`
@@ -1725,6 +2028,13 @@ function updateConsultationMailLink(result: ProjectionResult): void {
 
 function setText(targetId: string, value: string): void {
   getElementById<HTMLElement>(targetId).textContent = value
+}
+
+function setOptionalText(targetId: string, value: string): void {
+  const element = document.getElementById(targetId)
+  if (element) {
+    element.textContent = value
+  }
 }
 
 function writeInputValue(value: number): void {
@@ -3065,6 +3375,36 @@ async function loadPresetManifest(activePresetValue: RuntimePreset): Promise<Pre
 
 async function loadPresetContext(fallbackPreset: RuntimePreset): Promise<PresetContext> {
   const params = new URLSearchParams(window.location.search)
+  const requestedCustomerId = sanitizeCustomerScenarioId(params.get(CUSTOMER_SCENARIO_QUERY_KEY))
+
+  if (requestedCustomerId) {
+    try {
+      const response = await fetch(buildCustomerScenarioDataUrl(requestedCustomerId), { cache: 'no-store' })
+      if (!response.ok) {
+        throw new Error(`Kundenszenario ${requestedCustomerId} konnte nicht geladen werden.`)
+      }
+      const rawScenario = await response.json()
+      const scenario = validateCustomerScenario(rawScenario)
+      return {
+        mode: 'customer',
+        preset: scenario.preset,
+        notice: null,
+        hasExplicitPresetParam: false,
+        customerScenario: scenario,
+        customerScenarioId: scenario.id,
+      }
+    } catch {
+      return {
+        mode: 'customer',
+        preset: fallbackPreset,
+        notice: `Kundenszenario "${requestedCustomerId}" konnte nicht geladen werden. Es wird das Standard-Preset angezeigt.`,
+        hasExplicitPresetParam: false,
+        customerScenario: null,
+        customerScenarioId: null,
+      }
+    }
+  }
+
   const requestedMode = params.get('mode')
   const mode: AppMode = isAppMode(requestedMode) ? requestedMode : 'admin'
   const requestedPresetParam = params.get('preset')
@@ -3084,6 +3424,8 @@ async function loadPresetContext(fallbackPreset: RuntimePreset): Promise<PresetC
       preset: validatePreset(rawPreset),
       notice: null,
       hasExplicitPresetParam,
+      customerScenario: null,
+      customerScenarioId: null,
     }
   } catch {
     const notice = requestedPresetId === fallbackPreset.id
@@ -3095,6 +3437,8 @@ async function loadPresetContext(fallbackPreset: RuntimePreset): Promise<PresetC
       preset: fallbackPreset,
       notice,
       hasExplicitPresetParam,
+      customerScenario: null,
+      customerScenarioId: null,
     }
   }
 }
@@ -3257,6 +3601,231 @@ function requireDraftPresetId(): string {
 function resolveDraftPresetLabel(): string {
   const label = presetLabelInput.value.trim()
   return label || activePreset.label
+}
+
+function resolveDraftCustomerIdentity(): CustomerIdentity {
+  return normalizeCustomerIdentity({
+    firstName: customerFirstNameInput.value,
+    lastName: customerLastNameInput.value,
+  })
+}
+
+function requireCustomerIdentity(): CustomerIdentity {
+  const identity = resolveDraftCustomerIdentity()
+  if (!identity.firstName || !identity.lastName) {
+    throw new Error('Bitte Vor- und Nachnamen des Kunden angeben, bevor Sie den Kundenlink generieren.')
+  }
+  return identity
+}
+
+function getCurrentCustomerIdentity(): CustomerIdentity {
+  if (appMode === 'admin') {
+    return resolveDraftCustomerIdentity()
+  }
+  return initialCustomerIdentity
+}
+
+function readCustomerIdentityFromParams(params: URLSearchParams): CustomerIdentity {
+  return normalizeCustomerIdentity({
+    firstName: params.get(CUSTOMER_FIRST_NAME_QUERY_KEY) ?? params.get('firstName') ?? '',
+    lastName: params.get(CUSTOMER_LAST_NAME_QUERY_KEY) ?? params.get('lastName') ?? '',
+  })
+}
+
+function mergeCustomerIdentity(
+  primary: CustomerIdentity | null | undefined,
+  fallback: CustomerIdentity | null | undefined,
+): CustomerIdentity {
+  const primaryIdentity = normalizeCustomerIdentity(primary)
+  const fallbackIdentity = normalizeCustomerIdentity(fallback)
+
+  return {
+    firstName: primaryIdentity.firstName || fallbackIdentity.firstName,
+    lastName: primaryIdentity.lastName || fallbackIdentity.lastName,
+  }
+}
+
+function normalizeCustomerIdentity(candidate: CustomerIdentity | null | undefined): CustomerIdentity {
+  return {
+    firstName: normalizeCustomerNamePart(candidate?.firstName ?? ''),
+    lastName: normalizeCustomerNamePart(candidate?.lastName ?? ''),
+  }
+}
+
+function normalizeCustomerNamePart(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function hasCustomerIdentity(candidate: CustomerIdentity | null | undefined): boolean {
+  const identity = normalizeCustomerIdentity(candidate)
+  return Boolean(identity.firstName || identity.lastName)
+}
+
+function formatCustomerDisplayName(candidate: CustomerIdentity | null | undefined): string {
+  const identity = normalizeCustomerIdentity(candidate)
+  return [identity.firstName, identity.lastName].filter(Boolean).join(' ')
+}
+
+function appendCustomerIdentityParams(params: URLSearchParams, customerIdentity: CustomerIdentity | null | undefined): void {
+  const identity = normalizeCustomerIdentity(customerIdentity)
+  if (identity.firstName) {
+    params.set(CUSTOMER_FIRST_NAME_QUERY_KEY, identity.firstName)
+  }
+  if (identity.lastName) {
+    params.set(CUSTOMER_LAST_NAME_QUERY_KEY, identity.lastName)
+  }
+}
+
+function appendScenarioParams(
+  params: URLSearchParams,
+  apartmentId: ApartmentId,
+  taxTableMode: TaxTableMode,
+  grossAnnualIncomeValue: number,
+  growthRatePercent: number,
+  equityAmount: number,
+  depotRatePercent: number,
+): void {
+  params.set('apartment', apartmentId)
+  params.set('tax', taxTableMode)
+  params.set('gross', String(Math.round(grossAnnualIncomeValue)))
+  params.set('growth', String(growthRatePercent))
+  params.set('equity', String(Math.round(equityAmount)))
+  params.set('depot', String(depotRatePercent))
+}
+
+function buildAppUrl(targetMode: AppMode, params: URLSearchParams): string {
+  return `${resolveAppOrigin(targetMode)}${resolveAppBasePath()}?${params.toString()}`
+}
+
+function resolveAppOrigin(targetMode: AppMode): string {
+  if (isLocalRuntime()) {
+    return window.location.origin
+  }
+  return targetMode === 'customer' ? CUSTOMER_APP_ORIGIN : ADVISOR_APP_ORIGIN
+}
+
+function resolveAppBasePath(): string {
+  return resolvePublicAssetPath('')
+}
+
+function buildCustomerScenarioDataUrl(customerScenarioId: string): string {
+  return `${CUSTOMER_SCENARIO_DATA_ROOT}/${customerScenarioId}.json`
+}
+
+function buildCustomerScenarioApiUrl(): string {
+  return `${resolveAppOrigin('customer')}${resolvePublicAssetPath(CUSTOMER_SCENARIO_API_PATH)}`
+}
+
+function sanitizeCustomerScenarioId(value: string | null): string | null {
+  if (!value) {
+    return null
+  }
+  const normalized = value.trim()
+  return /^[a-z0-9_-]+$/i.test(normalized) ? normalized : null
+}
+
+function isLocalRuntime(): boolean {
+  return LOCAL_APP_HOSTNAMES.has(window.location.hostname)
+}
+
+async function createCustomerScenarioLink(customerIdentity: CustomerIdentity): Promise<{ id: string; customerUrl: string }> {
+  const response = await fetch(buildCustomerScenarioApiUrl(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      customer: normalizeCustomerIdentity(customerIdentity),
+      preset: buildCurrentPreset(config),
+    }),
+  })
+
+  const payload = await parseJsonResponse(response)
+
+  if (!response.ok) {
+    const message = extractApiErrorMessage(payload)
+    throw new Error(message || `Kundenlink konnte nicht generiert werden (${response.status}).`)
+  }
+
+  const customerScenarioId = validateCustomerScenarioCreateResponse(payload)
+  return {
+    id: customerScenarioId,
+    customerUrl: buildCustomerScenarioShareUrl(customerScenarioId),
+  }
+}
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
+  const body = await response.text()
+  if (!body) {
+    return null
+  }
+
+  try {
+    return JSON.parse(body)
+  } catch {
+    return { message: body }
+  }
+}
+
+function extractApiErrorMessage(payload: unknown): string | null {
+  if (!isRecord(payload)) {
+    return null
+  }
+
+  if (typeof payload.error === 'string' && payload.error.trim()) {
+    return payload.error.trim()
+  }
+
+  if (typeof payload.message === 'string' && payload.message.trim()) {
+    return payload.message.trim()
+  }
+
+  return null
+}
+
+function validateCustomerScenarioCreateResponse(payload: unknown): string {
+  if (!isRecord(payload)) {
+    throw new Error('Antwort des Kundenszenario-Endpunkts ist ungültig.')
+  }
+
+  const id = sanitizeCustomerScenarioId(typeof payload.id === 'string' ? payload.id : null)
+  if (!id) {
+    throw new Error('Kundenszenario-ID fehlt in der Serverantwort.')
+  }
+
+  return id
+}
+
+function validateCustomerScenario(candidate: unknown): CustomerScenarioSnapshot {
+  if (!isRecord(candidate)) {
+    throw new Error('Kundenszenario muss ein JSON-Objekt sein.')
+  }
+
+  const id = sanitizeCustomerScenarioId(typeof candidate.id === 'string' ? candidate.id : null)
+  if (!id) {
+    throw new Error('Kundenszenario-ID fehlt oder ist ungültig.')
+  }
+
+  return {
+    id,
+    createdAt:
+      typeof candidate.createdAt === 'string' && candidate.createdAt.trim()
+        ? candidate.createdAt.trim()
+        : new Date().toISOString(),
+    customer: validateCustomerIdentity(candidate.customer),
+    preset: validatePreset(candidate.preset),
+  }
+}
+
+function validateCustomerIdentity(candidate: unknown): CustomerIdentity {
+  if (!isRecord(candidate)) {
+    return { firstName: '', lastName: '' }
+  }
+
+  return normalizeCustomerIdentity({
+    firstName: typeof candidate.firstName === 'string' ? candidate.firstName : '',
+    lastName: typeof candidate.lastName === 'string' ? candidate.lastName : '',
+  })
 }
 
 function downloadTextFile(filename: string, text: string): void {

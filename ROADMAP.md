@@ -4,12 +4,78 @@
 - Turn the current York Living dashboard into a reusable real-estate presentation system.
 - Keep the calculation engine stable while swapping project content, assumptions, visuals, and timelines with minimal code changes.
 
+## Priority 0: Live-Fähige Trennung von Berater- und Kundenversion
+- Stabilen Merge-Pfad zwischen `main` und `codex-vorschlaege` definieren.
+- Zielbild:
+  - `main` bleibt Beraterversion auf `mlp-mediziner-beratung.de/YorkLiving`
+  - Kundenfähige Variante auf `montolio.de/YorkLiving`
+- Vorgaben aus Issue `#2` umsetzen:
+  - Preset-Modul bleibt in der Beraterversion erhalten
+  - Kundenlink wird aus der Beraterversion erzeugt
+  - Kundenversion bleibt minimiert und nicht frei konfigurierbar
+  - Vor- und Nachname werden im Beratungsmodus erfasst und im Kundenszenario gespeichert
+  - kompletter Preset-Snapshot wird serverseitig pro Kunde als JSON eingefroren
+  - Kundenlink bleibt kurz und lädt nur noch `?customer=<token>`
+  - Kundenänderungen zu Hause bleiben rein lokal und überschreiben niemals das gespeicherte Ausgangsszenario
+
+## Priority 0A: Finanzielle Startlogik korrigieren
+- Startvermögen, Nebenkosten und eingesetztes Eigenkapital auf eine konsistente Definition bringen.
+- Kaufpreis bleibt Objektwertbasis, Nebenkosten werden als separater Vermögenseffekt modelliert.
+- Feste Regel: Wenn `Nebenkosten < EK-Einsatz`, startet das Vermögen mit `EK-Einsatz - Nebenkosten`.
+- Vermögenspfad, Ergebniskennzahlen und Detailtabelle müssen denselben fachlichen Startpunkt nutzen.
+
 ## Active Issues
 - Issue `#1`: PDF-Ausgabe grundlegend überarbeiten und versandfähig machen
   - Link: `https://github.com/Montoliou/Immobilien/issues/1`
+  - Roadmap-Mapping: `Priority 2`
   - Ergänzung für die Umsetzung:
     - PDF braucht einen einfach lesbaren jährlichen Tilgungsplan
     - Jahreswerte sollen mit Zins, Tilgung, Steuerwirkung und kumulierter Belastung nachvollziehbar sein
+- Issue `#2`: Wahl Berater- und Kundenversion
+  - Link: `https://github.com/Montoliou/Immobilien/issues/2`
+  - Roadmap-Mapping: `Priority 0`
+  - Kritischer Punkt: Branch- und Domain-Trennung muss ohne Funktionsverlust zusammengeführt werden
+- Issue `#3`: Eigenkapital sichtbar machen
+  - Link: `https://github.com/Montoliou/Immobilien/issues/3`
+  - Roadmap-Mapping: `Priority 0A`
+  - Kritischer Punkt: fachliche Korrektheit von Startvermögen, Nebenkosten und Vermögenspfad
+- Issue `#4`: Jährliche Einnahmen und Ausgaben anpassen
+  - Link: `https://github.com/Montoliou/Immobilien/issues/4`
+  - Roadmap-Mapping: `Priority 1A`
+- Issue `#5`: Prognose deutlicher machen
+  - Link: `https://github.com/Montoliou/Immobilien/issues/5`
+  - Roadmap-Mapping: `Priority 1B`
+- Issue `#6`: Parameter Menü Layout anpassen
+  - Link: `https://github.com/Montoliou/Immobilien/issues/6`
+  - Roadmap-Mapping: `Priority 1C`
+- Issue `#7`: Version 2.0 modularer Aufbau für das einfache Arbeiten neuer Immobilien
+  - Link: `https://github.com/Montoliou/Immobilien/issues/7`
+  - Roadmap-Mapping: `Priority 2A`
+  - Strategischer Punkt: Intake- und Projektstruktur für neue Immobilien vorbereiten
+
+## Issue Intake 2026-03-10
+- Die Issues teilen sich in drei Gruppen:
+  - Betriebs- und Live-Struktur: `#2`
+  - Fachliche/UX-Klarheit im bestehenden Rechner: `#3`, `#4`, `#5`, `#6`
+  - Langfristige Produktisierung: `#1`, `#7`
+- Empfohlene Abarbeitungsreihenfolge:
+  1. `#2` Berater-/Kundenversion stabil zusammenführen
+  2. `#3` Eigenkapital- und Startvermögenslogik fachlich korrigieren
+  3. `#4` Tabelle fachlich vervollständigen
+  4. `#5` Prognosebereich klarer führen
+  5. `#6` Parameter-Menü zum echten Editor ausbauen
+  6. `#7` Modularisierung für neue Immobilien absichern
+  7. `#1` PDF auf dem modulareren Unterbau neu aufsetzen
+- Aktuelle Abhängigkeiten:
+  - `#2` ist Voraussetzung für klare Live-Verantwortung von Berater- und Kundenversion
+  - `#3` sollte vor größeren Kommunikations- und PDF-Ausgaben geklärt werden
+  - `#4` unterstützt direkt `#1`
+  - `#7` reduziert den Umbauaufwand für `#1` und künftige Immobilien
+- Festgelegte Entscheidungen vom 10.03.2026:
+  - Namens-Personalisierung aus `#2` wird im Kundenszenario pro Kunde gespeichert
+  - Kundenszenarien werden nicht als Voll-URL serialisiert, sondern als serverseitige JSON-Snapshots mit kurzem Token-Link ausgeliefert
+  - Startvermögen aus `#3` folgt der Regel `EK-Einsatz - Nebenkosten`, wenn mehr als die Nebenkosten eingebracht werden
+  - Parameter-Menü aus `#6` wird auf allen Breakpoints vollflächig umgesetzt, inklusive Namensvorbereitung
 
 ## Current Baseline
 - App lives in `dashboard/`.
@@ -20,6 +86,24 @@
   - Denkmal-AfA timing (`afaStartYear`, `afaStartQuarter`)
   - apartment data
   - financing and tax assumptions
+
+## Priority 1A: Detailtabelle fachlich vervollständigen
+- Ergänze unter `Jährliche Einnahmen und Ausgaben` eine Summenzeile für alle Geldspalten.
+- Ergänze mindestens zwei neue Vermögensspalten:
+  - `Immobilienwert`
+  - `Restschuld`
+- Prüfe zusätzlich eine Spalte `Nettovermögen`, wenn dies die Lesbarkeit erhöht.
+
+## Priority 1B: Prognosebereich klarer führen
+- `3. Prognose` typografisch auf das Niveau von Schritt 1 bringen.
+- Kurz erklären, was der Kunde nacheinander tun soll und wann sich die rechte Seite aktualisiert.
+- Ergebnis-Kernaussage früher und verständlicher im Blick halten.
+
+## Priority 1C: Parameter-Menü zum echten Editor ausbauen
+- Menü auf Desktop und Mobile vollflächig über die gesamte Höhe aufziehen.
+- Layout für schnelles Arbeiten im Beratungsmodus optimieren.
+- Kundenname als Teil des Beratungs-Workflows direkt im Editor vorbereiten.
+- Glassmorphism und Animation gezielt, aber nicht zulasten der Lesbarkeit einsetzen.
 
 ## Priority 1: Separate Property Content From Engine
 - Move all York-specific text blocks into a dedicated content file.
@@ -86,10 +170,11 @@
   - optional advisor contact handoff after result view
 - Add a preset and share-link contract for customer scenarios:
   - consultant preset IDs for advisor-defined defaults
-  - all customer-facing inputs must be reproducible from the URL
+  - all customer-facing inputs must be reproducible from a customer snapshot plus optional local URL overrides
   - consultant-only config must not leak into generic customer links
   - exact rule: one customer changing values at home must never affect another customer
   - keep browser-local config isolated via local storage only, never via shared remote state
+  - customer links should prefer short tokens over long query strings
 
 ## Priority 6A: Preset Architecture For Advisor And Customer Mode
 - Introduce a preset file as the single source of truth for distributable customer setups.
@@ -121,7 +206,26 @@
   - add a protected write endpoint for saving preset JSON from the UI
   - keep versioning and validation server-side
   - never allow customer-side writes back into shared presets
+  - create per-customer scenario snapshots on the server and return short links
 
+
+## Priority 6E: Serverseitige Kundenszenarien
+- Beraterversion erzeugt aus aktuellem Preset, Name und Szenario ein serverseitiges JSON.
+- Zielstruktur:
+  - `customer-scenarios/<token>.json`
+  - Linkform: `/YorkLiving/?customer=<token>`
+- Snapshot-Inhalt:
+  - `id`
+  - `createdAt`
+  - `customer.firstName`
+  - `customer.lastName`
+  - kompletter `preset`-Snapshot inklusive `calculationConfig` und `scenarioDefaults`
+- Technische Leitplanken:
+  - Schreiben nur über einen Server-Endpunkt
+  - Kundenansicht lädt Snapshots nur lesend
+  - keine Überschreibung bestehender Snapshots
+  - Tokens nicht erratbar, keine fortlaufenden IDs
+  - lokale Entwicklung darf mit Vorschau-URLs arbeiten, falls der Endpunkt nicht verfügbar ist
 ## Priority 6D: Customer-Facing UX Rules
 - In customer mode:
   - remove the scenario-link button
@@ -157,4 +261,7 @@
 - Extract York-specific copy from `main.ts`.
 - Introduce `dashboard/src/data/property-content.json`.
 - Keep all calculations untouched during that refactor.
+
+
+
 
