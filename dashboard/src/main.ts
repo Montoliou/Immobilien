@@ -485,6 +485,30 @@ app.innerHTML = `
       </div>
     </section>
 
+    <section class="journey-strip" aria-label="So funktioniert der Immobilien-Check">
+      <article class="journey-step">
+        <span class="journey-step-number">1</span>
+        <div>
+          <p class="journey-step-title">Wohnungsoption wählen</p>
+          <p class="journey-step-copy">Apartment A oder B auswählen und den Grundriss direkt prüfen.</p>
+        </div>
+      </article>
+      <article class="journey-step">
+        <span class="journey-step-number">2</span>
+        <div>
+          <p class="journey-step-title">Einkommen und Steuerart setzen</p>
+          <p class="journey-step-copy">Bruttojahreseinkommen, Steuertarif und Eigenkapital auf Ihr Szenario anpassen.</p>
+        </div>
+      </article>
+      <article class="journey-step">
+        <span class="journey-step-number">3</span>
+        <div>
+          <p class="journey-step-title">Prognose und Liquidität lesen</p>
+          <p class="journey-step-copy">Vermögen, monatliche Wirkung und Detailtabelle darunter gemeinsam einordnen.</p>
+        </div>
+      </article>
+    </section>
+
     <section class="workspace">
       <section class="panel choose-panel">
         <h2>1. Wählen Sie Ihre Wohnungsoption</h2>
@@ -570,10 +594,19 @@ app.innerHTML = `
       </section>
 
       <section class="panel result-panel" aria-live="polite">
-        <p class="eyebrow">3. Prognose</p>
-        <h2 id="result-headline">Ihr mögliches Vermögen nach ${projectionYears} Jahren</h2>
-        <p id="out-wealth20" class="wealth-value">-</p>
-        <p id="out-wealth-gain" class="wealth-subvalue">-</p>
+        <div class="result-section-head">
+          <div>
+            <h2>3. Prognose</h2>
+            <p class="result-section-copy">
+              Lesen Sie die Auswertung in dieser Reihenfolge: erst Vermögen, dann monatliche Liquidität, danach die Details.
+            </p>
+          </div>
+        </div>
+        <div class="result-summary-head">
+          <p id="result-headline" class="result-headline-copy">Ihr mögliches Vermögen nach ${projectionYears} Jahren</p>
+          <p id="out-wealth20" class="wealth-value">-</p>
+          <p id="out-wealth-gain" class="wealth-subvalue">-</p>
+        </div>
 
         ${appMode === 'admin'
           ? `

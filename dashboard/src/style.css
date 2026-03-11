@@ -830,6 +830,73 @@ p {
   color: var(--ink-soft);
 }
 
+.journey-strip {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.journey-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px 20px;
+  border: 1px solid rgb(255 255 255 / 60%);
+  border-radius: 18px;
+  background: rgb(255 255 255 / 58%);
+  box-shadow: 0 14px 30px rgb(16 38 52 / 10%);
+  backdrop-filter: blur(12px) saturate(1.04);
+}
+
+.journey-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgb(47 79 95 / 12%);
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.journey-step-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.journey-step-copy {
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.result-section-head {
+  display: grid;
+  gap: 8px;
+}
+
+.result-section-copy {
+  max-width: 56ch;
+  color: var(--ink-soft);
+}
+
+.result-summary-head {
+  display: grid;
+  gap: 10px;
+}
+
+.result-headline-copy {
+  max-width: 48ch;
+  color: var(--ink-strong);
+  font-size: 1.08rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .dialog-modal {
   position: fixed;
   inset: 0;
@@ -2129,6 +2196,7 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .journey-strip,
   .workspace {
     grid-template-columns: 1fr;
   }
