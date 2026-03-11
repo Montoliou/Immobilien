@@ -3501,7 +3501,8 @@ async function loadPresetContext(fallbackPreset: RuntimePreset): Promise<PresetC
   }
 
   const requestedMode = params.get('mode')
-  const mode: AppMode = isAppMode(requestedMode) ? requestedMode : 'admin'
+  const runtimeMode = resolveRuntimeAppMode()
+  const mode: AppMode = runtimeMode ?? (isAppMode(requestedMode) ? requestedMode : 'admin')
   const requestedPresetParam = params.get('preset')
   const requestedPresetId = sanitizePresetId(requestedPresetParam) ?? fallbackPreset.id
   const hasExplicitPresetParam = sanitizePresetId(requestedPresetParam) !== null
@@ -3823,6 +3824,21 @@ function isLocalRuntime(): boolean {
   return LOCAL_APP_HOSTNAMES.has(window.location.hostname)
 }
 
+function resolveRuntimeAppMode(): AppMode | null {
+  if (isLocalRuntime()) {
+    return null
+  }
+
+  const runtimeOrigin = window.location.origin.replace(/\/$/, '')
+  if (runtimeOrigin === CUSTOMER_APP_ORIGIN) {
+    return 'customer'
+  }
+  if (runtimeOrigin === ADVISOR_APP_ORIGIN) {
+    return 'admin'
+  }
+  return null
+}
+
 async function createCustomerScenarioLink(customerIdentity: CustomerIdentity): Promise<{ id: string; customerUrl: string }> {
   const response = await fetch(buildCustomerScenarioApiUrl(), {
     method: 'POST',
@@ -3973,3 +3989,4 @@ function resolvePublicAssetPath(path: string): string {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
   return `${normalizedBase}${normalizedPath}`
 }
+
