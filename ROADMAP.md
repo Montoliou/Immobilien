@@ -30,6 +30,7 @@
   - Vermögenszuwachs bezieht sich auf `Startvermögen` statt `Startkapital`.
   - Das Vermögensdiagramm zeigt einen Startpunkt `0` mit Nebenkosten-Effekt.
   - Die Vermögenszusammensetzung reagiert auf Hover/Fokus im Diagramm.
+  - Beim Wechsel der Wohnung springt `Eigenkapital` standardmäßig auf die Nebenkosten der gewählten Einheit und bleibt danach manuell überschreibbar.
 
 ## Active Issues
 - Issue `#1`: PDF-Ausgabe grundlegend überarbeiten und versandfähig machen

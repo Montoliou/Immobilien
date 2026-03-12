@@ -1461,6 +1461,8 @@ function renderApartmentCards(): void {
         return
       }
       selectedApartmentId = apartmentId
+      investedEquity = getDefaultEquityForApartment(apartmentId)
+      writeEquityInputValue(investedEquity)
       renderApartmentCards()
       renderConfigEditorSummary()
       refreshEditorDirtyState()
