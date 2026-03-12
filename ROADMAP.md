@@ -5,11 +5,12 @@
 - Keep the calculation engine stable while swapping project content, assumptions, visuals, and timelines with minimal code changes.
 
 ## Priority 0: Live-Fähige Trennung von Berater- und Kundenversion
-- Status im Branch `berater-kundenversion`: technisch weitgehend umgesetzt und lokal reviewbar; Merge nach `main` und Live-Rollout stehen noch aus.
+- Status im Branch `berater-kundenversion`: technisch weitgehend umgesetzt; Montolio dient als Review-Stand, Merge nach `main` und Live-Rollout auf die Beratungsdomain stehen noch aus.
 - Stabilen Merge-Pfad zwischen `main` und `codex-vorschlaege` definieren.
 - Zielbild:
   - `main` bleibt Beraterversion auf `mlp-mediziner-beratung.de/YorkLiving`
-  - Kundenfähige Variante auf `montolio.de/YorkLiving`
+  - `montolio.de/YorkLiving` startet ebenfalls die Beraterversion als Review-Stand
+  - Kundenversionen öffnen nur noch über personalisierte Snapshot- oder Vorschau-Links
 - Vorgaben aus Issue `#2` umsetzen:
   - Preset-Modul bleibt in der Beraterversion erhalten
   - Kundenlink wird aus der Beraterversion erzeugt
@@ -116,15 +117,16 @@
   - Dynamische Kernaussage bleibt direkt unter der Sektionsüberschrift sichtbar.
 
 ## Priority 1C: Parameter-Menü zum echten Editor ausbauen
-- Status im Branch `berater-kundenversion`: umgesetzt und lokal reviewbar.
+- Status im Branch `berater-kundenversion`: umgesetzt und auf Montolio reviewbar.
 - Menü auf Desktop und Mobile vollflächig über die gesamte Höhe aufziehen.
 - Layout für schnelles Arbeiten im Beratungsmodus optimieren.
 - Kundenname als Teil des Beratungs-Workflows direkt im Editor vorbereiten.
 - Glassmorphism und Animation gezielt, aber nicht zulasten der Lesbarkeit einsetzen.
 - Aktueller Stand:
-  - Vollflächiger Berater-Editor mit separater Preset-Seitenleiste und scrollbarer Parameterfläche.
-  - Aktionsbereich, Kundenvorschau und Statusmeldungen sind vom Feldbereich getrennt.
-  - Editor nutzt weiche Overlays und bleibt auf Desktop wie Mobile vollflächig.
+  - Vollflächiger Berater-Editor mit einer konsolidierten `Preset-Verwaltung` und scrollbarer Parameterfläche.
+  - Projekt-Presets und JSON-Import landen im selben Laufzeitpfad ohne Seiten-Reload.
+  - Header enthält nur noch Editor-Aktionen plus kompakten Zuschnitt; Statusmeldungen sitzen inline in der Preset-Verwaltung.
+  - Dirty-State mit Bestätigungsdialog schützt vor versehentlichem Überschreiben ungespeicherter Änderungen.
 
 ## Priority 1: Separate Property Content From Engine
 - Move all York-specific text blocks into a dedicated content file.

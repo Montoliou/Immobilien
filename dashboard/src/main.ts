@@ -224,6 +224,8 @@ type PresetContext = {
 }
 
 const CONFIG_STORAGE_KEY = 'york-living-runtime-config'
+const PREVIEW_PRESET_STORAGE_KEY = 'york-living-preview-preset'
+const PREVIEW_PRESET_QUERY_KEY = 'previewPreset'
 const DEFAULT_PRESET_ID = 'york-living-default'
 const growthBounds = { min: -2, max: 5, step: 0.1 }
 const equityBounds = { min: 0, max: 30000, step: 500 }
@@ -284,6 +286,10 @@ const initialCustomerIdentity = mergeCustomerIdentity(
   readCustomerIdentityFromParams(new URLSearchParams(window.location.search)),
   activeCustomerScenario?.customer ?? null,
 )
+const initialEditorSourcePreset = cloneRuntimePreset(activePreset)
+const initialLoadedProjectPresetId = presetManifest.some((entry) => entry.id === activePreset.id)
+  ? activePreset.id
+  : null
 
 const app = getElementById<HTMLDivElement>('app')
 
@@ -307,25 +313,39 @@ app.innerHTML = `
             bis Sie sie bewusst exportieren oder übernehmen.
           </p>
         </div>
-        <button
-          id="config-editor-close"
-          type="button"
-          class="liquidity-view-nav"
-          aria-label="Parameter-Editor schließen"
-        >
-          ×
-        </button>
+        <div class="config-editor-head-side">
+          <div class="config-editor-action-bar">
+            <button id="apply-config" class="btn btn-primary btn-compact" type="button">Übernehmen</button>
+            <button id="reset-config" class="btn btn-secondary btn-compact" type="button">Zurücksetzen</button>
+            <button id="config-editor-close" class="btn btn-secondary btn-compact" type="button">Schließen</button>
+          </div>
+          <div class="config-head-summary" aria-label="Aktueller Zuschnitt">
+            <div class="config-head-summary-item">
+              <span class="config-head-summary-title">Preset</span>
+              <strong id="config-summary-preset" class="config-head-summary-value">-</strong>
+            </div>
+            <div class="config-head-summary-item">
+              <span class="config-head-summary-title">Kundenszenario</span>
+              <strong id="config-summary-scenario" class="config-head-summary-value">-</strong>
+            </div>
+            <div class="config-head-summary-item">
+              <span class="config-head-summary-title">Zeitachse</span>
+              <strong id="config-summary-timing" class="config-head-summary-value">-</strong>
+            </div>
+          </div>
+        </div>
       </header>
 
       <div class="config-editor-layout">
         <aside class="config-sidebar">
           <section class="config-sidebar-card">
+            <div>
+              <p class="config-panel-title">Preset-Verwaltung</p>
+            </div>
+
             <div class="config-sidebar-block">
               <div>
-                <p class="config-panel-title">Preset und Kundenvorschau</p>
-                <p class="config-panel-copy">
-                  Definiert die exportierbare Kundenversion und lädt bestehende Presets direkt aus dem Projekt.
-                </p>
+                <p class="config-panel-subtitle">Metadaten</p>
               </div>
               <div class="config-grid config-grid-compact">
                 <label class="config-field">
@@ -361,52 +381,36 @@ app.innerHTML = `
               </div>
             </div>
 
-            <div class="config-toolbar">
+            <div class="config-sidebar-block">
+              <div>
+                <p class="config-panel-subtitle">Preset öffnen</p>
+              </div>
               <label class="config-field config-field-grow">
-                <span class="config-field-label">Gespeichertes Preset</span>
+                <span class="config-field-label">Aus Projekt öffnen</span>
                 <span class="config-field-hint">Lädt eine vorhandene Preset-Datei aus public/presets.</span>
                 <select id="preset-selector" class="config-select">${renderPresetManifestOptions(presetManifest, activePresetId)}</select>
               </label>
               <div class="config-toolbar-actions config-toolbar-actions-split">
-                <button id="load-preset" class="btn btn-secondary btn-compact" type="button">Preset laden</button>
+                <button id="load-preset" class="btn btn-secondary btn-compact" type="button">Aus Projekt öffnen</button>
+                <button id="import-preset" class="btn btn-secondary btn-compact" type="button">Aus JSON öffnen</button>
+              </div>
+              <input id="import-preset-file" type="file" accept="application/json,.json" hidden />
+            </div>
+
+            <div class="config-sidebar-block">
+              <div>
+                <p class="config-panel-subtitle">Aus aktuellem Stand</p>
+                <p class="config-field-hint">
+                  Vorschau und Export nutzen immer die aktuellen Werte im Editor, nicht nur die Projekt-Auswahl.
+                </p>
+              </div>
+              <div class="config-toolbar-actions config-toolbar-actions-split">
                 <button id="preview-preset" class="btn btn-secondary btn-compact" type="button">Kundenvorschau</button>
+                <button id="copy-config" class="btn btn-secondary btn-compact" type="button">Als JSON speichern</button>
               </div>
             </div>
-          </section>
 
-          <section class="config-sidebar-card config-sidebar-card-muted">
-            <p class="config-panel-title">Aktueller Zuschnitt</p>
-            <div class="config-summary-list">
-              <div class="config-summary-item">
-                <span class="config-summary-label">Preset</span>
-                <strong id="config-summary-preset" class="config-summary-value">-</strong>
-              </div>
-              <div class="config-summary-item">
-                <span class="config-summary-label">Kundenszenario</span>
-                <strong id="config-summary-scenario" class="config-summary-value">-</strong>
-              </div>
-              <div class="config-summary-item">
-                <span class="config-summary-label">Zeitachse</span>
-                <strong id="config-summary-timing" class="config-summary-value">-</strong>
-              </div>
-              <div class="config-summary-item">
-                <span class="config-summary-label">AfA und Wachstum</span>
-                <strong id="config-summary-afa" class="config-summary-value">-</strong>
-              </div>
-            </div>
-          </section>
-
-          <section class="config-sidebar-card config-sidebar-card-actions">
-            <p class="config-panel-title">Aktionen</p>
-            <p class="config-panel-copy">
-              Kundenlinks werden immer aus dieser Beraterversion erzeugt und öffnen die reduzierte Kundenversion auf montolio.de.
-            </p>
-            <div class="config-actions">
-              <button id="apply-config" class="btn btn-primary btn-compact" type="button">Übernehmen</button>
-              <button id="reset-config" class="btn btn-secondary btn-compact" type="button">Zurücksetzen</button>
-              <button id="copy-config" class="btn btn-secondary btn-compact" type="button">Preset JSON herunterladen</button>
-            </div>
-            <p id="config-status" class="config-status" role="status" aria-live="polite"></p>
+            <p id="config-status" class="config-status config-status-inline" role="status" aria-live="polite"></p>
           </section>
         </aside>
 
@@ -884,6 +888,42 @@ app.innerHTML = `
     </section>
   </div>
 
+  <div id="preset-open-modal" class="dialog-modal" aria-hidden="true"${appMode === 'customer' ? ' hidden' : ''}>
+    <div class="dialog-modal-backdrop" data-preset-open-close="true"></div>
+    <section
+      class="dialog-modal-panel dialog-modal-panel-compact"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="preset-open-modal-title"
+    >
+      <header class="dialog-modal-head">
+        <div>
+          <p class="eyebrow">Preset öffnen</p>
+          <h3 id="preset-open-modal-title">Ungespeicherte Änderungen sichern?</h3>
+        </div>
+        <button
+          id="preset-open-modal-close"
+          type="button"
+          class="liquidity-view-nav"
+          aria-label="Dialog schließen"
+        >
+          ×
+        </button>
+      </header>
+      <div class="dialog-modal-content">
+        <p class="lead dialog-modal-copy">
+          Der aktuelle Editorstand weicht vom zuletzt geladenen Preset ab. Sie können ihn zuerst als JSON sichern oder direkt das nächste Preset öffnen.
+        </p>
+        <p id="preset-open-modal-status" class="config-status" role="status" aria-live="polite"></p>
+      </div>
+      <footer class="dialog-modal-actions dialog-modal-actions-compact">
+        <button id="preset-open-cancel" class="btn btn-secondary btn-compact" type="button">Abbrechen</button>
+        <button id="preset-open-save" class="btn btn-secondary btn-compact" type="button">Aktuellen Stand als JSON speichern</button>
+        <button id="preset-open-confirm" class="btn btn-primary btn-compact" type="button">Ohne Speichern öffnen</button>
+      </footer>
+    </section>
+  </div>
+
   <div id="liquidity-modal" class="liquidity-modal" aria-hidden="true">
     <div class="liquidity-modal-backdrop" data-liquidity-modal-close="true"></div>
     <section
@@ -955,9 +995,17 @@ const customerLinkModalStatus = getElementById<HTMLElement>('customer-link-modal
 const customerLinkModalCloseButton = getElementById<HTMLButtonElement>('customer-link-modal-close')
 const customerLinkCancelButton = getElementById<HTMLButtonElement>('customer-link-cancel')
 const customerLinkConfirmButton = getElementById<HTMLButtonElement>('customer-link-confirm')
+const presetOpenModal = getElementById<HTMLDivElement>('preset-open-modal')
+const presetOpenModalStatus = getElementById<HTMLElement>('preset-open-modal-status')
+const presetOpenModalCloseButton = getElementById<HTMLButtonElement>('preset-open-modal-close')
+const presetOpenCancelButton = getElementById<HTMLButtonElement>('preset-open-cancel')
+const presetOpenSaveButton = getElementById<HTMLButtonElement>('preset-open-save')
+const presetOpenConfirmButton = getElementById<HTMLButtonElement>('preset-open-confirm')
 const presetSelector = getElementById<HTMLSelectElement>('preset-selector')
 const loadPresetButton = getElementById<HTMLButtonElement>('load-preset')
 const previewPresetButton = getElementById<HTMLButtonElement>('preview-preset')
+const importPresetFileInput = getElementById<HTMLInputElement>('import-preset-file')
+const importPresetButton = getElementById<HTMLButtonElement>('import-preset')
 const liquidityModeLabel = getElementById<HTMLElement>('liquidity-mode')
 const liquidityViewToggleButton = getElementById<HTMLButtonElement>('liquidity-view-toggle')
 const liquidityViewContent = getElementById<HTMLDivElement>('liquidity-view-content')
@@ -987,9 +1035,15 @@ let heroSlideIndex = 0
 let heroSlideIntervalId: number | null = null
 let latestProjectionResult: ProjectionResult | null = null
 let activeWealthPathIndex: number | null = null
+let editorSourcePreset = initialEditorSourcePreset
+let loadedProjectPresetId: string | null = initialLoadedProjectPresetId
+let editorBaselineSignature = ''
+let isEditorDirty = false
 let isLiquidityModalOpen = false
 let isCustomerLinkModalOpen = false
+let isPresetOpenModalOpen = false
 let isConfigEditorOpen = false
+let pendingPresetOpenAction: (() => Promise<void>) | null = null
 
 hydrateStateFromUrl()
 renderApartmentCards()
@@ -1001,7 +1055,9 @@ presetIdInput.value = activePreset.id
 presetLabelInput.value = activePreset.label
 customerFirstNameInput.value = initialCustomerIdentity.firstName
 customerLastNameInput.value = initialCustomerIdentity.lastName
+syncPresetSelector()
 renderConfigEditorSummary()
+commitEditorBaseline()
 renderHeroSlide()
 startHeroAutoplay()
 if (shouldUseStoredConfig && hasStoredConfig()) {
@@ -1021,6 +1077,8 @@ incomeInput.addEventListener('input', () => {
     config.incomeBounds.min,
     config.incomeBounds.max,
   )
+  renderConfigEditorSummary()
+  refreshEditorDirtyState()
   renderProjection()
 })
 
@@ -1031,6 +1089,8 @@ taxTableInputs.forEach((input) => {
     }
     selectedTaxTableMode = input.value
     renderTaxTableSelection()
+    renderConfigEditorSummary()
+    refreshEditorDirtyState()
     renderProjection()
   })
 })
@@ -1041,6 +1101,8 @@ growthInput.addEventListener('input', () => {
     growthBounds.min,
     growthBounds.max,
   )
+  renderConfigEditorSummary()
+  refreshEditorDirtyState()
   renderProjection()
 })
 
@@ -1050,6 +1112,8 @@ equityInput.addEventListener('input', () => {
     equityBounds.min,
     equityBounds.max,
   )
+  renderConfigEditorSummary()
+  refreshEditorDirtyState()
   renderProjection()
 })
 
@@ -1062,36 +1126,83 @@ presetIdInput.addEventListener('input', () => {
     .replace(/^-+|-+$/g, '')
   presetIdInput.value = normalized
   renderConfigEditorSummary()
+  refreshEditorDirtyState()
 })
 
 presetLabelInput.addEventListener('input', () => {
   renderConfigEditorSummary()
+  refreshEditorDirtyState()
 })
 
-loadPresetButton.addEventListener('click', () => {
+configForm.addEventListener('input', () => {
+  refreshEditorDirtyState()
+})
+
+configForm.addEventListener('change', () => {
+  refreshEditorDirtyState()
+})
+
+loadPresetButton.addEventListener('click', async () => {
   const nextPresetId = sanitizePresetId(presetSelector.value)
-  if (!nextPresetId || nextPresetId === activePresetId) {
-    setConfigStatus('Dieses Preset ist bereits geladen.')
+  if (!nextPresetId) {
+    setConfigStatus('Bitte wählen Sie zuerst ein Projekt-Preset aus.', true)
     return
   }
-  window.location.assign(buildPresetModeUrl('admin', nextPresetId))
+  if (loadedProjectPresetId === nextPresetId && !isEditorDirty) {
+    setConfigStatus('Dieses Projekt-Preset ist bereits geöffnet.')
+    return
+  }
+
+  await requestPresetOpen(async () => {
+    const nextPreset = await loadProjectPreset(nextPresetId)
+    applyRuntimePreset(nextPreset)
+    setConfigStatus(`Projekt-Preset "${nextPreset.label}" wurde im Editor geöffnet.`)
+  })
 })
 
 previewPresetButton.addEventListener('click', () => {
-  const targetPresetId = sanitizePresetId(presetSelector.value) ?? activePresetId
-  const previewUrl = buildScenarioUrl(
-    selectedApartmentId,
-    selectedTaxTableMode,
-    annualGrossIncome,
-    annualGrowthRatePercent,
-    investedEquity,
-    depotReturnRatePercent,
-    'customer',
-    targetPresetId,
-    null,
-    resolveDraftCustomerIdentity(),
-  )
-  window.open(previewUrl, '_blank', 'noopener,noreferrer')
+  try {
+    const previewPreset = buildCurrentPreset(buildConfigFromForm(configForm))
+    savePreviewPreset(previewPreset)
+    const previewUrl = buildLocalPreviewUrl(
+      selectedApartmentId,
+      selectedTaxTableMode,
+      annualGrossIncome,
+      annualGrowthRatePercent,
+      investedEquity,
+      depotReturnRatePercent,
+      resolveDraftCustomerIdentity(),
+    )
+    window.open(previewUrl, '_blank', 'noopener,noreferrer')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Kundenvorschau konnte nicht geöffnet werden.'
+    setConfigStatus(`Kundenvorschau konnte nicht geöffnet werden: ${message}`, true)
+  }
+})
+
+importPresetButton.addEventListener('click', () => {
+  importPresetFileInput.click()
+})
+
+importPresetFileInput.addEventListener('change', async () => {
+  const file = importPresetFileInput.files?.[0]
+  importPresetFileInput.value = ''
+
+  if (!file) {
+    return
+  }
+
+  try {
+    const rawValue = await file.text()
+    const importedPreset = validatePreset(JSON.parse(rawValue) as unknown)
+    await requestPresetOpen(async () => {
+      applyRuntimePreset(importedPreset)
+      setConfigStatus(`Preset "${importedPreset.label}" wurde aus JSON geöffnet und kann jetzt weiterbearbeitet werden.`)
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Preset konnte nicht gelesen werden.'
+    setConfigStatus(`Preset-Import fehlgeschlagen: ${message}`, true)
+  }
 })
 
 openConfigEditorButton.addEventListener('click', () => {
@@ -1162,16 +1273,14 @@ customerLinkConfirmButton.addEventListener('click', async () => {
     }
 
     try {
-      const previewUrl = buildScenarioUrl(
+      savePreviewPreset(buildCurrentPreset(buildConfigFromForm(configForm)))
+      const previewUrl = buildLocalPreviewUrl(
         selectedApartmentId,
         selectedTaxTableMode,
         annualGrossIncome,
         annualGrowthRatePercent,
         investedEquity,
         depotReturnRatePercent,
-        'customer',
-        requireDraftPresetId(),
-        null,
         requireCustomerIdentity(),
       )
       const copied = await copyToClipboard(previewUrl)
@@ -1199,6 +1308,40 @@ customerLinkModal.addEventListener('click', (event) => {
   closeCustomerLinkModal()
 })
 
+presetOpenModalCloseButton.addEventListener('click', () => {
+  closePresetOpenModal()
+})
+
+presetOpenCancelButton.addEventListener('click', () => {
+  closePresetOpenModal()
+})
+
+presetOpenSaveButton.addEventListener('click', () => {
+  try {
+    exportCurrentPresetAsJson()
+    setPresetOpenModalStatus('Aktueller Stand wurde als JSON gespeichert. Sie können jetzt das neue Preset öffnen.')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Preset konnte nicht gespeichert werden.'
+    setPresetOpenModalStatus(message, true)
+  }
+})
+
+presetOpenConfirmButton.addEventListener('click', async () => {
+  await confirmPendingPresetOpen()
+})
+
+presetOpenModal.addEventListener('click', (event) => {
+  const target = event.target
+  if (!(target instanceof HTMLElement)) {
+    return
+  }
+  const closeTrigger = target.closest<HTMLElement>('[data-preset-open-close="true"]')
+  if (!closeTrigger) {
+    return
+  }
+  closePresetOpenModal()
+})
+
 liquidityModalCloseButton.addEventListener('click', () => {
   dismissLiquidityTableModal()
 })
@@ -1221,6 +1364,10 @@ liquidityModal.addEventListener('click', (event) => {
 
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') {
+    return
+  }
+  if (isPresetOpenModalOpen) {
+    closePresetOpenModal()
     return
   }
   if (isCustomerLinkModalOpen) {
@@ -1272,10 +1419,8 @@ resetConfigButton.addEventListener('click', () => {
 
 copyConfigButton.addEventListener('click', () => {
   try {
-    const nextConfig = buildConfigFromForm(configForm)
-    const nextPreset = buildCurrentPreset(nextConfig)
-    downloadTextFile(`${nextPreset.id}.json`, JSON.stringify(nextPreset, null, 2))
-    setConfigStatus('Preset JSON wurde heruntergeladen. Bitte unter dashboard/public/presets ablegen, manifest.json ergänzen und anschließend deployen.')
+    const nextPreset = exportCurrentPresetAsJson()
+    setConfigStatus(`Preset "${nextPreset.label}" wurde als JSON gespeichert. Sie können es später über „Aus JSON öffnen“ wieder laden.`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
     setConfigStatus(`Preset ist noch nicht gültig: ${message}`, true)
@@ -1317,6 +1462,8 @@ function renderApartmentCards(): void {
       }
       selectedApartmentId = apartmentId
       renderApartmentCards()
+      renderConfigEditorSummary()
+      refreshEditorDirtyState()
       renderProjection()
     })
   })
@@ -1999,8 +2146,8 @@ function closeConfigEditor(): void {
 
 function renderConfigEditorSummary(): void {
   const selectedApartment = getApartment(selectedApartmentId)
-  const presetLabel = presetLabelInput.value.trim() || activePreset.label
-  const presetId = presetIdInput.value.trim() || activePresetId
+  const presetLabel = presetLabelInput.value.trim() || editorSourcePreset.label
+  const presetId = presetIdInput.value.trim() || resolveCurrentPresetRouteId()
 
   setOptionalText('config-summary-preset', `${presetLabel} (${presetId})`)
   setOptionalText(
@@ -2009,11 +2156,7 @@ function renderConfigEditorSummary(): void {
   )
   setOptionalText(
     'config-summary-timing',
-    `Kauf ${config.assumptions.purchaseYear} · Miete ab Q${config.assumptions.rentStartQuarter} ${config.assumptions.rentStartYear}`,
-  )
-  setOptionalText(
-    'config-summary-afa',
-    `AfA ab Q${config.assumptions.afaStartQuarter} ${config.assumptions.afaStartYear} · Wachstum ${formatSignedPercent(annualGrowthRatePercent)} %`,
+    `Kauf ${config.assumptions.purchaseYear} · Miete ab Q${config.assumptions.rentStartQuarter} ${config.assumptions.rentStartYear} · AfA ab Q${config.assumptions.afaStartQuarter} ${config.assumptions.afaStartYear}`,
   )
 }
 
@@ -2046,8 +2189,75 @@ function setCustomerLinkModalStatus(message: string, isError = false): void {
   customerLinkModalStatus.classList.toggle('config-status-error', isError)
 }
 
+function openPresetOpenModal(): void {
+  if (appMode === 'customer') {
+    return
+  }
+
+  setPresetOpenModalStatus('')
+  presetOpenModal.classList.add('dialog-modal-open')
+  presetOpenModal.setAttribute('aria-hidden', 'false')
+  isPresetOpenModalOpen = true
+  syncBodyModalState()
+  window.setTimeout(() => presetOpenConfirmButton.focus(), 40)
+}
+
+function closePresetOpenModal(clearPending = true): void {
+  if (!isPresetOpenModalOpen) {
+    if (clearPending) {
+      pendingPresetOpenAction = null
+    }
+    return
+  }
+
+  presetOpenModal.classList.remove('dialog-modal-open')
+  presetOpenModal.setAttribute('aria-hidden', 'true')
+  isPresetOpenModalOpen = false
+  if (clearPending) {
+    pendingPresetOpenAction = null
+  }
+  setPresetOpenModalStatus('')
+  syncBodyModalState()
+}
+
+function setPresetOpenModalStatus(message: string, isError = false): void {
+  presetOpenModalStatus.textContent = message
+  presetOpenModalStatus.classList.toggle('config-status-error', isError)
+}
+
+async function confirmPendingPresetOpen(): Promise<void> {
+  const action = pendingPresetOpenAction
+  if (!action) {
+    closePresetOpenModal()
+    return
+  }
+
+  pendingPresetOpenAction = null
+  closePresetOpenModal(false)
+
+  try {
+    await action()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Preset konnte nicht geöffnet werden.'
+    setConfigStatus(`Preset konnte nicht geöffnet werden: ${message}`, true)
+  }
+}
+
+async function requestPresetOpen(action: () => Promise<void>): Promise<void> {
+  if (!isEditorDirty) {
+    await action()
+    return
+  }
+
+  pendingPresetOpenAction = action
+  openPresetOpenModal()
+}
+
 function syncBodyModalState(): void {
-  document.body.classList.toggle('body-modal-open', isLiquidityModalOpen || isCustomerLinkModalOpen || isConfigEditorOpen)
+  document.body.classList.toggle(
+    'body-modal-open',
+    isLiquidityModalOpen || isCustomerLinkModalOpen || isPresetOpenModalOpen || isConfigEditorOpen,
+  )
 }
 
 function advanceLiquidityView(): void {
@@ -2117,7 +2327,7 @@ function syncUrlState(): void {
   if (activeCustomerScenarioId) {
     params.set(CUSTOMER_SCENARIO_QUERY_KEY, activeCustomerScenarioId)
   } else {
-    params.set('preset', activePresetId)
+    params.set('preset', resolveCurrentPresetRouteId())
     params.set('mode', appMode)
 
     if (appMode === 'customer') {
@@ -2190,11 +2400,29 @@ function hydrateStateFromUrl(): void {
 
 }
 
-function buildPresetModeUrl(targetMode: AppMode, presetId: string): string {
+function buildLocalPreviewUrl(
+  apartmentId: ApartmentId,
+  taxTableMode: TaxTableMode,
+  grossAnnualIncomeValue: number,
+  growthRatePercent: number,
+  equityAmount: number,
+  depotRatePercent: number,
+  customerIdentity: CustomerIdentity | null = null,
+): string {
   const params = new URLSearchParams()
-  params.set('preset', presetId)
-  params.set('mode', targetMode)
-  return buildAppUrl(targetMode, params)
+  params.set(PREVIEW_PRESET_QUERY_KEY, 'local')
+  params.set('mode', 'customer')
+  appendCustomerIdentityParams(params, customerIdentity)
+  appendScenarioParams(
+    params,
+    apartmentId,
+    taxTableMode,
+    grossAnnualIncomeValue,
+    growthRatePercent,
+    equityAmount,
+    depotRatePercent,
+  )
+  return `${window.location.origin}${resolveAppBasePath()}?${params.toString()}`
 }
 
 function buildScenarioUrl(
@@ -2205,7 +2433,7 @@ function buildScenarioUrl(
   equityAmount: number,
   depotRatePercent: number,
   targetMode: AppMode = appMode,
-  presetId: string = activePresetId,
+  presetId: string = resolveCurrentPresetRouteId(),
   customerScenarioId: string | null = activeCustomerScenarioId,
   customerIdentity: CustomerIdentity | null = null,
 ): string {
@@ -3261,6 +3489,23 @@ function hasStoredConfig(): boolean {
   return window.localStorage.getItem(CONFIG_STORAGE_KEY) !== null
 }
 
+function savePreviewPreset(value: RuntimePreset): void {
+  window.localStorage.setItem(PREVIEW_PRESET_STORAGE_KEY, JSON.stringify(value, null, 2))
+}
+
+function loadPreviewPreset(): RuntimePreset | null {
+  try {
+    const rawValue = window.localStorage.getItem(PREVIEW_PRESET_STORAGE_KEY)
+    if (!rawValue) {
+      return null
+    }
+    return validatePreset(JSON.parse(rawValue) as unknown)
+  } catch {
+    window.localStorage.removeItem(PREVIEW_PRESET_STORAGE_KEY)
+    return null
+  }
+}
+
 function validateConfig(candidate: unknown): CalculationConfig {
   if (!isRecord(candidate)) {
     throw new Error('Root muss ein JSON-Objekt sein.')
@@ -3557,6 +3802,14 @@ function setConfigStatus(message: string, isError = false): void {
   configStatus.classList.toggle('config-status-error', isError)
 }
 
+function cloneRuntimePreset(preset: RuntimePreset): RuntimePreset {
+  return {
+    ...preset,
+    calculationConfig: deepCloneConfig(preset.calculationConfig),
+    scenarioDefaults: { ...preset.scenarioDefaults },
+  }
+}
+
 function asNumber(value: unknown, path: string): number {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     throw new Error(`${path} muss eine Zahl sein.`)
@@ -3630,9 +3883,35 @@ async function loadPresetManifest(activePresetValue: RuntimePreset): Promise<Pre
   }
 }
 
+async function loadProjectPreset(presetId: string): Promise<RuntimePreset> {
+  const response = await fetch(resolvePublicAssetPath(`/presets/${presetId}.json`), {
+    cache: 'no-store',
+  })
+  if (!response.ok) {
+    throw new Error(`Preset ${presetId} konnte nicht geladen werden.`)
+  }
+  const rawPreset = await response.json()
+  return validatePreset(rawPreset)
+}
+
 async function loadPresetContext(fallbackPreset: RuntimePreset): Promise<PresetContext> {
   const params = new URLSearchParams(window.location.search)
+  const requestedPreviewPreset = params.get(PREVIEW_PRESET_QUERY_KEY)
   const requestedCustomerId = sanitizeCustomerScenarioId(params.get(CUSTOMER_SCENARIO_QUERY_KEY))
+
+  if (requestedPreviewPreset === 'local') {
+    const previewPreset = loadPreviewPreset()
+    if (previewPreset) {
+      return {
+        mode: 'customer',
+        preset: previewPreset,
+        notice: 'Lokale Kundenvorschau mit dem aktuellen Editorstand ist aktiv.',
+        hasExplicitPresetParam: false,
+        customerScenario: null,
+        customerScenarioId: null,
+      }
+    }
+  }
 
   if (requestedCustomerId) {
     try {
@@ -3663,23 +3942,15 @@ async function loadPresetContext(fallbackPreset: RuntimePreset): Promise<PresetC
   }
 
   const requestedMode = params.get('mode')
-  const runtimeMode = resolveRuntimeAppMode()
-  const mode: AppMode = runtimeMode ?? (isAppMode(requestedMode) ? requestedMode : 'admin')
+  const mode: AppMode = isAppMode(requestedMode) ? requestedMode : 'admin'
   const requestedPresetParam = params.get('preset')
   const requestedPresetId = sanitizePresetId(requestedPresetParam) ?? fallbackPreset.id
   const hasExplicitPresetParam = sanitizePresetId(requestedPresetParam) !== null
 
   try {
-    const response = await fetch(resolvePublicAssetPath(`/presets/${requestedPresetId}.json`), {
-      cache: 'no-store',
-    })
-    if (!response.ok) {
-      throw new Error(`Preset ${requestedPresetId} konnte nicht geladen werden.`)
-    }
-    const rawPreset = await response.json()
     return {
       mode,
-      preset: validatePreset(rawPreset),
+      preset: await loadProjectPreset(requestedPresetId),
       notice: null,
       hasExplicitPresetParam,
       customerScenario: null,
@@ -3819,7 +4090,7 @@ function getScenarioDefaultEquity(apartmentId: ApartmentId): number {
 
 function buildCurrentPreset(nextConfig: CalculationConfig): RuntimePreset {
   return {
-    ...activePreset,
+    ...editorSourcePreset,
     id: requireDraftPresetId(),
     label: resolveDraftPresetLabel(),
     updatedAt: new Date().toISOString(),
@@ -3835,6 +4106,132 @@ function buildCurrentPreset(nextConfig: CalculationConfig): RuntimePreset {
   }
 }
 
+function exportCurrentPresetAsJson(): RuntimePreset {
+  const nextConfig = buildConfigFromForm(configForm)
+  const nextPreset = buildCurrentPreset(nextConfig)
+  downloadTextFile(`${nextPreset.id}.json`, JSON.stringify(nextPreset, null, 2))
+  return nextPreset
+}
+
+function buildEditorDraftSignature(): string {
+  const formSnapshot = Object.fromEntries(
+    configSections.flatMap((section) =>
+      section.fields.map((field) => {
+        const element = configForm.querySelector<HTMLInputElement | HTMLSelectElement>(`#${field.id}`)
+        return [field.id, element?.value ?? '']
+      }),
+    ),
+  )
+
+  return JSON.stringify({
+    presetId: presetIdInput.value.trim(),
+    presetLabel: presetLabelInput.value.trim(),
+    selectedApartmentId,
+    selectedTaxTableMode,
+    annualGrossIncome,
+    annualGrowthRatePercent,
+    investedEquity,
+    depotReturnRatePercent,
+    formSnapshot,
+  })
+}
+
+function refreshEditorDirtyState(): void {
+  isEditorDirty = buildEditorDraftSignature() !== editorBaselineSignature
+  configEditor.classList.toggle('config-editor-dirty', isEditorDirty)
+}
+
+function commitEditorBaseline(): void {
+  editorBaselineSignature = buildEditorDraftSignature()
+  refreshEditorDirtyState()
+}
+
+function syncPresetSelector(): void {
+  const candidateId = loadedProjectPresetId ?? initialLoadedProjectPresetId ?? presetManifest[0]?.id ?? DEFAULT_PRESET_ID
+  if (presetManifest.some((entry) => entry.id === candidateId)) {
+    presetSelector.value = candidateId
+  }
+}
+
+function applyRuntimePreset(preset: RuntimePreset): void {
+  editorSourcePreset = cloneRuntimePreset(preset)
+  loadedProjectPresetId = presetManifest.some((entry) => entry.id === preset.id) ? preset.id : null
+
+  overwriteConfigSnapshot(config, preset.calculationConfig)
+  syncConfigFormValues(configForm, config)
+
+  const nextScenarioDefaults = normalizeScenarioDefaults(preset.scenarioDefaults, config)
+  scenarioDefaults.apartmentId = nextScenarioDefaults.apartmentId
+  scenarioDefaults.taxTableMode = nextScenarioDefaults.taxTableMode
+  scenarioDefaults.annualGrossIncome = nextScenarioDefaults.annualGrossIncome
+  scenarioDefaults.annualGrowthRatePercent = nextScenarioDefaults.annualGrowthRatePercent
+  scenarioDefaults.investedEquity = nextScenarioDefaults.investedEquity
+  scenarioDefaults.depotReturnRatePercent = nextScenarioDefaults.depotReturnRatePercent
+
+  selectedApartmentId = nextScenarioDefaults.apartmentId
+  selectedTaxTableMode = nextScenarioDefaults.taxTableMode
+  annualGrossIncome = nextScenarioDefaults.annualGrossIncome
+  annualGrowthRatePercent = nextScenarioDefaults.annualGrowthRatePercent
+  investedEquity = nextScenarioDefaults.investedEquity
+  depotReturnRatePercent = nextScenarioDefaults.depotReturnRatePercent
+
+  presetIdInput.value = sanitizePresetId(preset.id) ?? DEFAULT_PRESET_ID
+  presetLabelInput.value = preset.label.trim() || 'Neues Preset'
+  syncPresetSelector()
+
+  renderApartmentCards()
+  renderTaxTableSelection()
+  writeInputValue(annualGrossIncome)
+  writeGrowthInputValue(annualGrowthRatePercent)
+  writeEquityInputValue(investedEquity)
+  renderConfigEditorSummary()
+  commitEditorBaseline()
+  renderProjection()
+}
+
+function overwriteConfigSnapshot(target: CalculationConfig, source: CalculationConfig): void {
+  const clone = deepCloneConfig(source)
+  target.defaultApartmentId = clone.defaultApartmentId
+  target.defaultAnnualGrossIncome = clone.defaultAnnualGrossIncome
+  Object.assign(target.incomeBounds, clone.incomeBounds)
+  Object.assign(target.equityModel, clone.equityModel)
+
+  const { afaSchedule, ...assumptionValues } = clone.assumptions
+  Object.assign(target.assumptions, assumptionValues)
+  target.assumptions.afaSchedule.splice(
+    0,
+    target.assumptions.afaSchedule.length,
+    ...afaSchedule.map((entry) => ({ ...entry })),
+  )
+
+  target.taxBrackets.splice(
+    0,
+    target.taxBrackets.length,
+    ...clone.taxBrackets.map((entry) => ({ ...entry })),
+  )
+
+  target.apartments.splice(
+    0,
+    target.apartments.length,
+    ...clone.apartments.map((entry) => ({ ...entry })),
+  )
+}
+
+function syncConfigFormValues(form: HTMLFormElement, sourceConfig: CalculationConfig): void {
+  for (const section of configSections) {
+    for (const field of section.fields) {
+      if (field.type === 'select') {
+        const select = getFormElement<HTMLSelectElement>(form, field.id)
+        select.value = field.get(sourceConfig)
+        continue
+      }
+
+      const input = getFormElement<HTMLInputElement>(form, field.id)
+      input.value = formatConfigInputValue(field.get(sourceConfig), field.mode)
+    }
+  }
+}
+
 function renderPresetManifestOptions(entries: PresetManifestEntry[], currentId: string): string {
   return entries
     .map((entry) => {
@@ -3844,8 +4241,12 @@ function renderPresetManifestOptions(entries: PresetManifestEntry[], currentId: 
     .join('')
 }
 
+function resolveCurrentPresetRouteId(): string {
+  return loadedProjectPresetId ?? resolveDraftPresetId()
+}
+
 function resolveDraftPresetId(): string {
-  return sanitizePresetId(presetIdInput.value) ?? activePresetId
+  return sanitizePresetId(presetIdInput.value) ?? loadedProjectPresetId ?? editorSourcePreset.id
 }
 
 function requireDraftPresetId(): string {
@@ -3858,7 +4259,7 @@ function requireDraftPresetId(): string {
 
 function resolveDraftPresetLabel(): string {
   const label = presetLabelInput.value.trim()
-  return label || activePreset.label
+  return label || editorSourcePreset.label
 }
 
 function resolveDraftCustomerIdentity(): CustomerIdentity {
@@ -3986,21 +4387,6 @@ function isLocalRuntime(): boolean {
   return LOCAL_APP_HOSTNAMES.has(window.location.hostname)
 }
 
-function resolveRuntimeAppMode(): AppMode | null {
-  if (isLocalRuntime()) {
-    return null
-  }
-
-  const runtimeOrigin = window.location.origin.replace(/\/$/, '')
-  if (runtimeOrigin === CUSTOMER_APP_ORIGIN) {
-    return 'customer'
-  }
-  if (runtimeOrigin === ADVISOR_APP_ORIGIN) {
-    return 'admin'
-  }
-  return null
-}
-
 async function createCustomerScenarioLink(customerIdentity: CustomerIdentity): Promise<{ id: string; customerUrl: string }> {
   const response = await fetch(buildCustomerScenarioApiUrl(), {
     method: 'POST',
@@ -4009,7 +4395,7 @@ async function createCustomerScenarioLink(customerIdentity: CustomerIdentity): P
     },
     body: JSON.stringify({
       customer: normalizeCustomerIdentity(customerIdentity),
-      preset: buildCurrentPreset(config),
+      preset: buildCurrentPreset(buildConfigFromForm(configForm)),
     }),
   })
 
@@ -4151,4 +4537,3 @@ function resolvePublicAssetPath(path: string): string {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
   return `${normalizedBase}${normalizedPath}`
 }
-
