@@ -60,6 +60,8 @@ type EquityModel = {
   maxTotalInvestmentRatio: number
 }
 
+type TaxModelMode = 'approximate'
+
 type TaxBracket = {
   maxMonthlyIncome: number
   rate: number
@@ -138,6 +140,8 @@ type YearlyLiquidityRow = {
 type ProjectionResult = {
   apartment: ApartmentOption
   taxTableMode: TaxTableMode
+  taxModelMode: TaxModelMode
+  taxDisclaimer: string
   annualGrossIncome: number
   annualTax: number
   marginalTaxRate: number
@@ -243,6 +247,9 @@ const CUSTOMER_LAST_NAME_QUERY_KEY = 'last'
 const CUSTOMER_SCENARIO_DATA_ROOT = '/YorkLiving-data/customer-scenarios'
 const CUSTOMER_SCENARIO_API_PATH = '/api/create-customer-scenario.php'
 const LOCAL_APP_HOSTNAMES = new Set(['127.0.0.1', 'localhost'])
+const TAX_MODEL_DISCLAIMER =
+  'Steuerliche Wirkung modellhaft: Grundlage ist ein angenähertes zvE; Soli und Kirchensteuer sind nicht berücksichtigt.'
+const TAX_MODEL_SHORT_NOTE = 'angenähertes zvE, ohne Soli/Kirchensteuer'
 const heroSlides: HeroSlide[] = [
   {
     image: '/project/hero-york-living-tomorrow.png',
@@ -307,7 +314,7 @@ app.innerHTML = `
       <header class="config-editor-head">
         <div class="config-editor-intro">
           <p class="eyebrow">Berater-Editor</p>
-          <h2 id="config-editor-title">Preset, Finanzierung und Steuerannahmen</h2>
+          <h2 id="config-editor-title">Preset, Finanzierung und Steuermodell</h2>
           <p class="config-panel-copy">
             Dieser Editor steuert die Beraterversion und die daraus erzeugte Kundenversion. Änderungen gelten lokal,
             bis Sie sie bewusst exportieren oder übernehmen.
@@ -500,8 +507,8 @@ app.innerHTML = `
       <article class="journey-step">
         <span class="journey-step-number">2</span>
         <div>
-          <p class="journey-step-title">Einkommen und Steuerart setzen</p>
-          <p class="journey-step-copy">Bruttojahreseinkommen, Steuertarif und Eigenkapital auf Ihr Szenario anpassen.</p>
+          <p class="journey-step-title">Einkommen und Steuermodell setzen</p>
+          <p class="journey-step-copy">Bruttojahreseinkommen, Steuermodell und Eigenkapital auf Ihr Szenario anpassen.</p>
         </div>
       </article>
       <article class="journey-step">
@@ -534,8 +541,8 @@ app.innerHTML = `
             </label>
 
             <fieldset class="field field-tax-mode">
-              <legend>Steuertarif</legend>
-              <div class="tax-mode-switch" role="radiogroup" aria-label="Steuertarif wählen">
+              <legend>Steuermodell</legend>
+              <div class="tax-mode-switch" role="radiogroup" aria-label="Steuermodell wählen">
                 <label class="tax-mode-option" for="tax-mode-grund">
                   <input id="tax-mode-grund" type="radio" name="tax-table-mode" value="grund" />
                   <span>Grundtabelle</span>
@@ -547,6 +554,10 @@ app.innerHTML = `
               </div>
             </fieldset>
           </div>
+
+          <p class="tax-model-note tax-model-note-inline">
+            ${TAX_MODEL_DISCLAIMER}
+          </p>
 
           <label class="field" for="growth-rate">
             <span>Gemeinsame Wertentwicklung Objektwert + Miete (pro Jahr)</span>
@@ -586,8 +597,8 @@ app.innerHTML = `
             <p id="out-total-investment">-</p>
           </article>
           <article>
-            <p id="out-tax-label" class="assumption-label">Steuer laut Grundtabelle</p>
-            <p id="out-tax-rate">-</p>
+            <p id="out-tax-label" class="assumption-label">Steuermodell: Grundtabelle</p>
+            <p id="out-tax-rate" class="tax-model-copy">-</p>
           </article>
           <article>
             <p class="assumption-label">Restschuld bei Anschlussfinanzierung</p>
@@ -654,10 +665,11 @@ app.innerHTML = `
                 type="button"
                 aria-label="Zur nächsten Liquiditätsansicht wechseln"
               >
-                <span id="liquidity-mode" class="liquidity-mode">Vor Steuern</span>
+                <span id="liquidity-mode" class="liquidity-mode">Ohne Steuereffekt</span>
               </button>
             </div>
           </div>
+          <p id="liquidity-tax-note" class="tax-model-note tax-model-note-compact">-</p>
           <div id="liquidity-view-content" class="liquidity-view-content"></div>
         </div>
 
@@ -691,7 +703,7 @@ app.innerHTML = `
             <summary class="secondary-details-toggle">
               <div>
                 <p class="section-kicker">Rechenrahmen</p>
-                <span>Finanzierung und Steuerbasis im Überblick</span>
+                <span>Finanzierung und Steuermodell im Überblick</span>
               </div>
               <small>Details einblenden</small>
             </summary>
@@ -706,8 +718,8 @@ app.innerHTML = `
                   <p id="out-total-investment">-</p>
                 </article>
                 <article>
-                  <p id="out-tax-label" class="assumption-label">Steuer laut Grundtabelle</p>
-                  <p id="out-tax-rate">-</p>
+                  <p id="out-tax-label" class="assumption-label">Steuermodell: Grundtabelle</p>
+                  <p id="out-tax-rate" class="tax-model-copy">-</p>
                 </article>
                 <article>
                   <p class="assumption-label">Restschuld bei Anschlussfinanzierung</p>
@@ -1505,9 +1517,10 @@ function renderProjection(): void {
   )
   setText(
     'out-tax-rate',
-    `${formatCurrency(result.annualTax)} p.a. | Grenzsteuersatz ${formatPercent(result.marginalTaxRate * 100)} %`,
+    `Modell-Grenzsteuersatz ca. ${formatPercent(result.marginalTaxRate * 100)} %\n${TAX_MODEL_SHORT_NOTE}`,
   )
-  setText('out-tax-label', `Steuer laut ${getTaxTableLabel(result.taxTableMode)}`)
+  setText('out-tax-label', `Steuermodell: ${getTaxTableLabel(result.taxTableMode)}`)
+  setOptionalText('liquidity-tax-note', result.taxDisclaimer)
   setText('out-refinance-debt', formatCurrency(result.refinanceDebtBase))
   updateConsultationMailLink(result)
   renderConfigEditorSummary()
@@ -1536,6 +1549,7 @@ function calculateProjection(
   const taxableIncome = grossAnnualIncome * 0.8
   const annualTax = calculateAnnualIncomeTax(taxableIncome, taxTableMode)
   const marginalTaxRate = calculateMarginalTaxRate(taxableIncome, taxTableMode)
+  const taxDisclaimer = TAX_MODEL_DISCLAIMER
 
   const ancillaryCosts = apartment.purchasePrice * assumptions.ancillaryCostRate
   const totalInvestment = apartment.purchasePrice + ancillaryCosts
@@ -1707,6 +1721,8 @@ function calculateProjection(
   return {
     apartment,
     taxTableMode,
+    taxModelMode: 'approximate',
+    taxDisclaimer,
     annualGrossIncome: grossAnnualIncome,
     annualTax,
     marginalTaxRate,
@@ -1949,7 +1965,7 @@ function renderLiquidityChart(
   const maxAbs = Math.max(...values.map((value) => Math.abs(value)), 1)
   const maxValue = Math.max(...values, 0)
   const minValue = Math.min(...values, 0)
-  const modeLabel = basis === 'afterTax' ? 'Nach Steuern' : 'Vor Steuern'
+  const modeLabel = basis === 'afterTax' ? 'Mit Steuereffekt' : 'Ohne Steuereffekt'
 
   return `
     <button
@@ -2067,6 +2083,7 @@ function renderLiquidityTable(result: ProjectionResult): string {
         <div>
           <p class="liquidity-chart-title">Jährliche Liquiditätsdetails</p>
           <p class="liquidity-chart-copy">${startYear} bis ${endYear} mit allen Jahreswerten.</p>
+          <p class="tax-model-note tax-model-note-compact">${result.taxDisclaimer}</p>
         </div>
         <div class="liquidity-table-summary">
           <p class="liquidity-table-summary-label">Startvermögen bei Erwerb</p>
@@ -2083,9 +2100,9 @@ function renderLiquidityTable(result: ProjectionResult): string {
               <th>Tilg.</th>
               <th>Restsch.</th>
               <th>Nebenk.</th>
-              <th>Steuer</th>
-              <th>Cashflow v. St.</th>
-              <th>Cashflow n. St.</th>
+              <th>Steuereffekt</th>
+              <th>Cashflow o. Effekt</th>
+              <th>Cashflow m. Effekt</th>
               <th>Kum.</th>
               <th>Immo-Wert</th>
             </tr>
@@ -2305,22 +2322,22 @@ function getNextLiquidityView(viewMode: LiquidityViewMode): LiquidityViewMode {
 
 function getLiquidityViewLabel(viewMode: LiquidityViewMode): string {
   if (viewMode === 'afterTaxChart') {
-    return 'Nach Steuern'
+    return 'Mit Steuereffekt'
   }
   if (viewMode === 'beforeTaxChart') {
-    return 'Vor Steuern'
+    return 'Ohne Steuereffekt'
   }
   return 'Tabelle'
 }
 
 function getLiquidityToggleLabel(viewMode: LiquidityViewMode): string {
   if (viewMode === 'afterTaxChart') {
-    return 'Vor Steuern'
+    return 'Ohne Steuereffekt'
   }
   if (viewMode === 'beforeTaxChart') {
     return 'Tabelle'
   }
-  return 'Nach Steuern'
+  return 'Mit Steuereffekt'
 }
 
 function syncUrlState(): void {
@@ -2500,10 +2517,11 @@ function updateConsultationMailLink(result: ProjectionResult): void {
 
   bodyLines.push(
     `- Wohnungsoption: ${result.apartment.label} (${result.apartment.subtitle})`,
-    `- Steuertarif: ${getTaxTableLabel(result.taxTableMode)}`,
+    `- Steuermodell: ${getTaxTableLabel(result.taxTableMode)}`,
     `- Bruttojahreseinkommen: ${formatCurrency(result.annualGrossIncome)}`,
     `- Wertentwicklung p.a.: ${formatSignedPercent(result.annualGrowthRate * 100)} %`,
     `- Eingesetztes Eigenkapital: ${formatCurrency(result.startEquity)}`,
+    '- Steuerdarstellung: modellhafter Steuereffekt, ohne Soli/Kirchensteuer',
     '',
     `Szenario-Link: ${scenarioUrl}`,
   )
@@ -4539,3 +4557,4 @@ function resolvePublicAssetPath(path: string): string {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
   return `${normalizedBase}${normalizedPath}`
 }
+

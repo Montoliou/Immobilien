@@ -26,15 +26,27 @@
   - Rent start `Q4 2028`
   - Denkmal-AfA start `Q4 2028`
 
+## Tax Positioning
+- The current tax output is an approximate model, not a full tax engine.
+- Customer-facing release rule: communicate the app as an investment scenario calculator with a modeled tax effect.
+- Current model disclaimer: approximated taxable income, no Solidaritätszuschlag, no Kirchensteuer.
+- To consider for a later V2:
+  - true before/after tax engine
+  - optional Soli and Kirchensteuer
+  - more accurate Denkmal-AfA split for Altbau, Sanierung, and ancillary costs
+- Reminder for future sessions:
+  - raise the Phase-2 tax-engine question again before broader customer rollouts or stronger tax-related marketing claims.
+
 ## Live Deployment Topology
 - Two live variants exist at the same time.
 - `main` branch is currently live on `mlp-mediziner-beratung.de/YorkLiving`.
 - `codex-vorschlaege` was the previous Montolio test branch on `montolio.de/YorkLiving`.
 - `berater-kundenversion` is the current Montolio test branch on `montolio.de/YorkLiving` until superseded.
 - Do not mix these targets during deploys. Always confirm which branch/domain pairing is intended before publishing.
-- Runtime mode is domain-bound:
-  - `mlp-mediziner-beratung.de` must open the advisor mode
-  - `montolio.de` must open the customer mode
+- Runtime mode is link-driven:
+  - `mlp-mediziner-beratung.de/YorkLiving` opens the advisor mode by default
+  - `montolio.de/YorkLiving` also opens the advisor mode by default
+  - customer mode is entered only via generated customer links (`?customer=<token>`) or explicit preview links with `mode=customer`
 
 ## Learned Workflow Patterns
 - Customer links are generated from the advisor version only.

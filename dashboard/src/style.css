@@ -1235,6 +1235,26 @@ p {
   border-color: var(--accent);
 }
 
+.tax-model-note {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.tax-model-note-inline {
+  margin-top: 4px;
+}
+
+.tax-model-note-compact {
+  margin-top: 8px;
+  max-width: 64ch;
+}
+
+.tax-model-copy {
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
 .slider-value {
   color: var(--accent);
   font-size: 1rem;

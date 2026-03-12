@@ -32,6 +32,21 @@
   - Die Vermögenszusammensetzung reagiert auf Hover/Fokus im Diagramm.
   - Beim Wechsel der Wohnung springt `Eigenkapital` standardmäßig auf die Nebenkosten der gewählten Einheit und bleibt danach manuell überschreibbar.
 
+## Priority 0B: Tax Communication Safety
+- Status im Branch `berater-kundenversion`: Phase 1 als Kommunikations- und Freigabeschritt offen.
+- Ziel: Die App darf nach außen nur als Investment-Szenario-Rechner mit modelliertem Steuereffekt auftreten.
+- Phase 1 Release-Gate vor Kundenausgabe:
+  - UI-Terminologie auf `Steuermodell`, `Steuereffekt`, `Mit Steuereffekt`, `Ohne Steuereffekt` umstellen
+  - sichtbare Hinweise ergänzen: angenähertes zvE, ohne Soli/Kirchensteuer
+  - missverständliche Tabellen- und Ergebnislabels entschärfen
+  - keine Scheingenauigkeit in Mail- oder Ergebnistexten
+- To consider für V2:
+  - echte Vorher-/Nachher-Steuerrechnung
+  - Soli und Kirchensteuer optional modellieren
+  - Denkmal-AfA fachlich sauber in Altbau-/Sanierungsanteil und ENK-Aufteilung trennen
+- Reminder:
+  - Vor größeren Kundenausrollungen erneut prüfen, ob Phase 2 notwendig wird.
+
 ## Active Issues
 - Issue `#1`: PDF-Ausgabe grundlegend überarbeiten und versandfähig machen
   - Link: `https://github.com/Montoliou/Immobilien/issues/1`
