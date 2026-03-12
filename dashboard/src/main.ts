@@ -863,7 +863,7 @@ app.innerHTML = `
       </header>
       <div class="dialog-modal-content">
         <p class="lead dialog-modal-copy">
-          Geben Sie den Namen des Kunden jetzt direkt vor dem Generieren an. So bleibt der Link eindeutig zugeordnet.
+          Geben Sie optional den Namen des Kunden an. Ohne Namen wird ein generischer Kundenlink erzeugt, den Sie an mehrere Kunden versenden können.
         </p>
         <div class="config-grid dialog-modal-grid">
           <label class="config-field">
@@ -1268,13 +1268,17 @@ customerLinkConfirmButton.addEventListener('click', async () => {
   setCustomerLinkModalStatus('')
 
   try {
-    const customerIdentity = requireCustomerIdentity()
-    const scenario = await createCustomerScenarioLink(customerIdentity)
+    const customerIdentity = resolveDraftCustomerIdentity()
+    const customerIdentityOrNull = hasCustomerIdentity(customerIdentity) ? customerIdentity : null
+    const scenario = await createCustomerScenarioLink(customerIdentityOrNull)
     const copied = await copyToClipboard(scenario.customerUrl)
+    const successMessage = customerIdentityOrNull
+      ? 'Personalisierter Kundenlink wurde generiert und kopiert.'
+      : 'Generischer Kundenlink wurde generiert und kopiert.'
     setStatus(
       copied
-        ? 'Kundenlink wurde generiert und kopiert.'
-        : `Kundenlink wurde generiert: ${scenario.customerUrl}`,
+        ? successMessage
+        : `${successMessage.replace(' und kopiert.', '')}: ${scenario.customerUrl}`,
     )
     closeCustomerLinkModal()
   } catch (error) {
@@ -1286,6 +1290,8 @@ customerLinkConfirmButton.addEventListener('click', async () => {
 
     try {
       savePreviewPreset(buildCurrentPreset(buildConfigFromForm(configForm)))
+      const customerIdentity = resolveDraftCustomerIdentity()
+      const customerIdentityOrNull = hasCustomerIdentity(customerIdentity) ? customerIdentity : null
       const previewUrl = buildLocalPreviewUrl(
         selectedApartmentId,
         selectedTaxTableMode,
@@ -1293,11 +1299,14 @@ customerLinkConfirmButton.addEventListener('click', async () => {
         annualGrowthRatePercent,
         investedEquity,
         depotReturnRatePercent,
-        requireCustomerIdentity(),
+        customerIdentityOrNull,
       )
       const copied = await copyToClipboard(previewUrl)
+      const fallbackPrefix = customerIdentityOrNull
+        ? 'Es wurde stattdessen eine lokale, personalisierte Vorschau-URL kopiert.'
+        : 'Es wurde stattdessen eine lokale, generische Vorschau-URL kopiert.'
       const fallbackMessage = copied
-        ? `${message} Es wurde stattdessen eine lokale Vorschau-URL kopiert.`
+        ? `${message} ${fallbackPrefix}`
         : `${message} Lokale Vorschau: ${previewUrl}`
       setStatus(fallbackMessage)
       closeCustomerLinkModal()
@@ -4289,13 +4298,6 @@ function resolveDraftCustomerIdentity(): CustomerIdentity {
   })
 }
 
-function requireCustomerIdentity(): CustomerIdentity {
-  const identity = resolveDraftCustomerIdentity()
-  if (!identity.firstName || !identity.lastName) {
-    throw new Error('Bitte Vor- und Nachnamen des Kunden angeben, bevor Sie den Kundenlink generieren.')
-  }
-  return identity
-}
 
 function getCurrentCustomerIdentity(): CustomerIdentity {
   if (appMode === 'admin') {
@@ -4407,7 +4409,7 @@ function isLocalRuntime(): boolean {
   return LOCAL_APP_HOSTNAMES.has(window.location.hostname)
 }
 
-async function createCustomerScenarioLink(customerIdentity: CustomerIdentity): Promise<{ id: string; customerUrl: string }> {
+async function createCustomerScenarioLink(customerIdentity: CustomerIdentity | null = null): Promise<{ id: string; customerUrl: string }> {
   const response = await fetch(buildCustomerScenarioApiUrl(), {
     method: 'POST',
     headers: {

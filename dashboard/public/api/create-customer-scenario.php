@@ -43,9 +43,6 @@ try {
     }
 
     $customer = normalize_customer($payload['customer'] ?? null);
-    if ($customer['firstName'] === '' || $customer['lastName'] === '') {
-        respond(422, ['error' => 'Vor- und Nachname des Kunden sind Pflichtfelder.']);
-    }
 
     $preset = $payload['preset'] ?? null;
     if (!is_array($preset)) {
