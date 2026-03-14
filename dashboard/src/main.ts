@@ -167,6 +167,10 @@ type ProjectionResult = {
   yearlyWealthPath: number[]
   yearlyLiquidityRows: YearlyLiquidityRow[]
   depotReturnRate: number
+  depotNetReturnRate: number
+  depotCostRate: number
+  depotTaxRate: number
+  requiredDepotGrossReturnRate: number | null
   depotWealth20: number
   yearlyDepotPath: number[]
   finalRemainingDebt: number
@@ -272,6 +276,35 @@ const heroSlides: HeroSlide[] = [
     caption: 'Münster, die Fahrrad-Stadt',
   },
 ]
+const customerHeroHighlights = [
+  {
+    label: 'Wohnungsmix',
+    value: 'ca. 150 Apartments',
+    detail: '1 bis 2 Zimmer mit Einbauküche, 27 bis 35 m²',
+  },
+  {
+    label: 'Mieterzielgruppe',
+    value: 'breit vermietbar',
+    detail: 'Studenten, Auszubildende, Senioren und Wochenendpendler',
+  },
+  {
+    label: 'Steuerpotenzial',
+    value: 'Denkmal-AfA ca. 72 %',
+    detail: 'modellhaft bezogen auf den Kaufpreis',
+  },
+  {
+    label: 'Förderung',
+    value: 'KfW 261 mit Zuschuss',
+    detail: 'bis 150.000 € Darlehen und 10 % Tilgungszuschuss',
+  },
+  {
+    label: 'Zeitplan',
+    value: 'Bezug ab Q4 2028',
+    detail: 'Baubeginn geplant im Q2 2027',
+  },
+] as const
+const DEPOT_COST_RATE = 0.008
+const DEPOT_CAPITAL_GAINS_TAX_RATE = 0.26375
 const defaultConfigSource = deepCloneConfig(calculationConfig as CalculationConfig)
 const embeddedDefaultPreset = buildEmbeddedDefaultPreset(defaultConfigSource)
 const presetContext = await loadPresetContext(embeddedDefaultPreset)
@@ -460,25 +493,40 @@ app.innerHTML = `
           </div>
         </div>
       </div>
-      <div class="hero-content">
+      <div class="hero-content${appMode === 'customer' ? ' hero-content-customer' : ''}"${appMode === 'customer' ? ` style="--hero-content-bg: url('${resolvePublicAssetPath('/project/hero-york-today.png')}')"` : ''}>
         <p class="eyebrow">York Living Münster</p>
         <h1>Ihr Immobilien-Check in 60 Sekunden</h1>
         <p id="customer-greeting" class="customer-greeting"${appMode === 'customer' && hasCustomerIdentity(initialCustomerIdentity) ? '' : ' hidden'}>${appMode === 'customer' && hasCustomerIdentity(initialCustomerIdentity) ? `Persönliche Berechnung für ${escapeHtml(formatCustomerDisplayName(initialCustomerIdentity))}` : ''}</p>
         <p class="lead">
-          Wählen Sie einen Grundriss, geben Sie Ihr Bruttojahreseinkommen ein und erhalten Sie sofort eine
-          transparente ${projectionYears}-Jahres-Prognose für Ihr mögliches Vermögen.
+          ${appMode === 'customer'
+            ? 'York Living verbindet kompakte Apartments, Denkmal-AfA und KfW-Förderung im York-Quartier Münster. Auf Basis Ihrer Eingaben zeigt die App eine modellhafte 20-Jahres-Prognose.'
+            : `Wählen Sie einen Grundriss, geben Sie Ihr Bruttojahreseinkommen ein und erhalten Sie sofort eine transparente ${projectionYears}-Jahres-Prognose für Ihr mögliches Vermögen.`}
         </p>
         ${appMode === 'customer'
           ? `
-        <div class="hero-context-link">
-          <a
-            class="btn btn-secondary btn-link"
-            href="${MAPS_URL}"
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            Lage auf Google Maps
-          </a>
+        <div class="hero-customer-intro">
+          <div class="hero-customer-actions">
+            <a
+              class="btn btn-secondary hero-location-button"
+              href="${MAPS_URL}"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Standort auf Google Maps öffnen
+            </a>
+          </div>
+          <div class="hero-project-facts">
+            ${customerHeroHighlights
+              .map(
+                (fact) => `
+              <article class="hero-project-fact">
+                <p class="hero-project-fact-label">${fact.label}</p>
+                <p class="hero-project-fact-value">${fact.value}</p>
+                <p class="hero-project-fact-detail">${fact.detail}</p>
+              </article>`,
+              )
+              .join('')}
+          </div>
         </div>`
           : ''}
         <div class="hero-actions"${appMode === 'customer' ? ' hidden' : ''}>
@@ -1596,9 +1644,8 @@ function calculateProjection(
   let afaPhaseTwoYears = 0
   let postAfaYears = 0
   const yearlyWealthPath: number[] = [initialNetWealth]
-  const yearlyDepotPath: number[] = [startEquity]
   const yearlyLiquidityRows: YearlyLiquidityRow[] = []
-  let depotBalance = startEquity
+  const yearlyCashflows: number[] = []
 
   for (let year = 1; year <= assumptions.years; year += 1) {
     const calendarYear = getCalendarYearForProjectionYear(year)
@@ -1683,9 +1730,7 @@ function calculateProjection(
     const yearlyValue = apartment.purchasePrice * Math.pow(1 + annualGrowthRate, year)
     const yearlyNetWealth = yearlyValue - remainingDebt + cumulativeCashflow20
     yearlyWealthPath.push(yearlyNetWealth)
-
-    depotBalance = depotBalance * (1 + depotReturnRate) + (-yearlyCashflow)
-    yearlyDepotPath.push(depotBalance)
+    yearlyCashflows.push(yearlyCashflow)
 
     yearlyLiquidityRows.push({
       year,
@@ -1726,6 +1771,17 @@ function calculateProjection(
   const afaTotalYears = afaPhaseOneYears + afaPhaseTwoYears
   const afaCombinedMonthlyLiquidity =
     afaTotalYears > 0 ? (afaPhaseOneCashflow + afaPhaseTwoCashflow) / (afaTotalYears * 12) : 0
+  const { yearlyPath: yearlyDepotPath, finalBalance: depotBalance } = simulateDepotPath(
+    startEquity,
+    yearlyCashflows,
+    depotReturnRate,
+  )
+  const depotNetReturnRate = calculateDepotNetReturnRate(depotReturnRate)
+  const requiredDepotGrossReturnRate = findRequiredDepotGrossReturnRate(
+    wealth20,
+    startEquity,
+    yearlyCashflows,
+  )
 
   return {
     apartment,
@@ -1757,10 +1813,85 @@ function calculateProjection(
     yearlyWealthPath,
     yearlyLiquidityRows,
     depotReturnRate,
+    depotNetReturnRate,
+    depotCostRate: DEPOT_COST_RATE,
+    depotTaxRate: DEPOT_CAPITAL_GAINS_TAX_RATE,
+    requiredDepotGrossReturnRate,
     depotWealth20: depotBalance,
     yearlyDepotPath,
     finalRemainingDebt: remainingDebt,
   }
+}
+
+function calculateDepotNetReturnRate(
+  grossReturnRate: number,
+  costRate: number = DEPOT_COST_RATE,
+  taxRate: number = DEPOT_CAPITAL_GAINS_TAX_RATE,
+): number {
+  const afterCostRate = grossReturnRate - costRate
+  return afterCostRate > 0 ? afterCostRate * (1 - taxRate) : afterCostRate
+}
+
+function simulateDepotPath(
+  startBalance: number,
+  yearlyCashflows: number[],
+  grossReturnRate: number,
+  costRate: number = DEPOT_COST_RATE,
+  taxRate: number = DEPOT_CAPITAL_GAINS_TAX_RATE,
+): { yearlyPath: number[]; finalBalance: number } {
+  const yearlyPath = [startBalance]
+  let balance = startBalance
+
+  for (const yearlyCashflow of yearlyCashflows) {
+    const investableBalance = Math.max(balance, 0)
+    const grossReturnAmount = investableBalance * grossReturnRate
+    const costAmount = investableBalance * costRate
+    const taxableGain = Math.max(grossReturnAmount - costAmount, 0)
+    const capitalGainsTax = taxableGain * taxRate
+    const netReturnAmount = grossReturnAmount - costAmount - capitalGainsTax
+
+    balance += netReturnAmount + -yearlyCashflow
+    yearlyPath.push(balance)
+  }
+
+  return { yearlyPath, finalBalance: balance }
+}
+
+function findRequiredDepotGrossReturnRate(
+  targetWealth: number,
+  startBalance: number,
+  yearlyCashflows: number[],
+): number | null {
+  const maxSearchRate = 1
+  const zeroRateBalance = simulateDepotPath(startBalance, yearlyCashflows, 0).finalBalance
+  if (zeroRateBalance >= targetWealth) {
+    return 0
+  }
+
+  let lower = 0
+  let upper = 0.12
+  let upperBalance = simulateDepotPath(startBalance, yearlyCashflows, upper).finalBalance
+  while (upperBalance < targetWealth && upper < maxSearchRate) {
+    lower = upper
+    upper = Math.min(upper * 2, maxSearchRate)
+    upperBalance = simulateDepotPath(startBalance, yearlyCashflows, upper).finalBalance
+  }
+
+  if (upperBalance < targetWealth) {
+    return null
+  }
+
+  for (let iteration = 0; iteration < 40; iteration += 1) {
+    const midpoint = (lower + upper) / 2
+    const midpointBalance = simulateDepotPath(startBalance, yearlyCashflows, midpoint).finalBalance
+    if (midpointBalance >= targetWealth) {
+      upper = midpoint
+    } else {
+      lower = midpoint
+    }
+  }
+
+  return upper
 }
 
 function renderBudgetCard(result: ProjectionResult): void {
@@ -1789,7 +1920,7 @@ function renderComparisonCard(result: ProjectionResult): void {
       <p class="comparison-eyebrow">Alternative Kapitalanlage</p>
       <p class="comparison-title">Immobilie vs. Vermögensdepot nach ${projectionYears} Jahren</p>
       <p class="comparison-copy">
-        Annahme: identisches Startkapital und dieselben jährlichen Überschüsse oder Zusatzaufwände
+        Annahme: identisches Startkapital sowie dieselben jährlichen Zusatzaufwände oder Entnahmen
         wie im Immobilien-Szenario.
       </p>
       <div class="comparison-columns">
@@ -1799,13 +1930,17 @@ function renderComparisonCard(result: ProjectionResult): void {
         </div>
         <div class="comparison-vs">vs.</div>
         <div id="comp-col-depot" class="comparison-col">
-          <p class="comparison-label">Vermögensdepot</p>
+          <p class="comparison-label">Depot nach Kosten und Steuer</p>
           <p id="comp-val-depot" class="comparison-value">-</p>
         </div>
       </div>
       <p id="comp-note" class="comparison-note">-</p>
+      <div class="comparison-meta">
+        <p id="comp-net-return" class="comparison-meta-line">-</p>
+        <p id="comp-required-return" class="comparison-meta-line">-</p>
+      </div>
       <label class="comparison-slider-label" for="depot-return-rate-inline">
-        <span>Depot-Rendite: <strong id="out-depot-return-inline">-</strong></span>
+        <span>Marktrendite vor Kosten und Steuer: <strong id="out-depot-return-inline">-</strong></span>
         <input
           id="depot-return-rate-inline"
           class="comparison-slider"
@@ -1835,7 +1970,17 @@ function renderComparisonCard(result: ProjectionResult): void {
 
   setText('comp-val-property', formatCurrency(result.wealth20))
   setText('comp-val-depot', formatCurrency(result.depotWealth20))
-  setText('out-depot-return-inline', `${formatPercent(depotReturnRatePercent)} % p.a.`)
+  setText('out-depot-return-inline', `${formatPercent(depotReturnRatePercent)} % p.a. brutto`)
+  setText(
+    'comp-net-return',
+    `Nach Abzug von Kosten und Steuern bleiben ca. ${formatPercent(result.depotNetReturnRate * 100)} % netto.`,
+  )
+  setText(
+    'comp-required-return',
+    result.requiredDepotGrossReturnRate === null
+      ? 'Break-even zur Immobilie liegt rechnerisch bei mehr als 100 % Brutto-Marktrendite p.a.'
+      : `Break-even zur Immobilie liegt bei ca. ${formatPercent(result.requiredDepotGrossReturnRate * 100)} % Brutto-Marktrendite p.a.`,
+  )
 
   const noteEl = getElementById<HTMLElement>('comp-note')
   noteEl.className = `comparison-note ${diff >= 0 ? 'tone-positive' : 'tone-negative'}`

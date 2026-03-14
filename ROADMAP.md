@@ -312,3 +312,15 @@
 
 
 
+
+## Latest Update 2026-03-14
+- `codex-vorschlaege`: Kundenversion-Hero neu gewichtet.
+  - Bilder stehen jetzt vor dem Content-Block.
+  - Fünf Projektkacheln verdichten die Exposé-Argumente direkt im Hero.
+  - Standort-CTA ist als klarer Button integriert.
+  - Die dunkle Caption-Leiste unter den Bildern ist in der Kundenversion entfernt.
+- Depotvergleich fachlich geschärft.
+  - `0,8 %` laufende Depotkosten p.a. auf den Bestand.
+  - Positive Depoterträge werden mit modellierter Abgeltungssteuer inkl. Soli (`26,375 %`) belastet.
+  - Vergleich zeigt Netto-Rendite nach Kosten und Steuern.
+  - Vergleich zeigt zusätzlich die erforderliche Brutto-Marktrendite als Break-even zur Immobilie.
