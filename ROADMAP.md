@@ -324,3 +324,9 @@
   - Positive Depoterträge werden mit modellierter Abgeltungssteuer inkl. Soli (`26,375 %`) belastet.
   - Vergleich zeigt Netto-Rendite nach Kosten und Steuern.
   - Vergleich zeigt zusätzlich die erforderliche Brutto-Marktrendite als Break-even zur Immobilie.
+
+## Latest Update 2026-03-14 2
+- Parameter-Editor statt Berater-Editor benannt, damit die Funktion klarer beschrieben ist.
+- Depotkosten sind jetzt als echter Editor-Parameter im Bereich `Markt & Entwicklung` konfigurierbar.
+- Bestehende Presets ohne Depotkosten-Feld bleiben kompatibel und fallen auf `0,8 %` zurück.
+- Die Depotlogik nutzt damit keinen festen UI-Wert mehr, sondern den laufenden Konfigurationsstand.

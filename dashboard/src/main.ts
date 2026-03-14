@@ -44,6 +44,7 @@ type Assumptions = {
   refinanceRepaymentRate: number
   monumentShare: number
   annualGrowthRate: number
+  depotCostRate: number
   years: number
   afaSchedule: AfaScheduleEntry[]
 }
@@ -303,7 +304,7 @@ const customerHeroHighlights = [
     detail: 'Baubeginn geplant im Q2 2027',
   },
 ] as const
-const DEPOT_COST_RATE = 0.008
+const DEFAULT_DEPOT_COST_RATE = 0.008
 const DEPOT_CAPITAL_GAINS_TAX_RATE = 0.26375
 const defaultConfigSource = deepCloneConfig(calculationConfig as CalculationConfig)
 const embeddedDefaultPreset = buildEmbeddedDefaultPreset(defaultConfigSource)
@@ -346,7 +347,7 @@ app.innerHTML = `
     >
       <header class="config-editor-head">
         <div class="config-editor-intro">
-          <p class="eyebrow">Berater-Editor</p>
+          <p class="eyebrow">Parameter-Editor</p>
           <h2 id="config-editor-title">Preset, Finanzierung und Steuermodell</h2>
           <p class="config-panel-copy">
             Dieser Editor steuert die Beraterversion und die daraus erzeugte Kundenversion. Änderungen gelten lokal,
@@ -1771,16 +1772,19 @@ function calculateProjection(
   const afaTotalYears = afaPhaseOneYears + afaPhaseTwoYears
   const afaCombinedMonthlyLiquidity =
     afaTotalYears > 0 ? (afaPhaseOneCashflow + afaPhaseTwoCashflow) / (afaTotalYears * 12) : 0
+  const depotCostRate = assumptions.depotCostRate
   const { yearlyPath: yearlyDepotPath, finalBalance: depotBalance } = simulateDepotPath(
     startEquity,
     yearlyCashflows,
     depotReturnRate,
+    depotCostRate,
   )
-  const depotNetReturnRate = calculateDepotNetReturnRate(depotReturnRate)
+  const depotNetReturnRate = calculateDepotNetReturnRate(depotReturnRate, depotCostRate)
   const requiredDepotGrossReturnRate = findRequiredDepotGrossReturnRate(
     wealth20,
     startEquity,
     yearlyCashflows,
+    depotCostRate,
   )
 
   return {
@@ -1814,7 +1818,7 @@ function calculateProjection(
     yearlyLiquidityRows,
     depotReturnRate,
     depotNetReturnRate,
-    depotCostRate: DEPOT_COST_RATE,
+    depotCostRate,
     depotTaxRate: DEPOT_CAPITAL_GAINS_TAX_RATE,
     requiredDepotGrossReturnRate,
     depotWealth20: depotBalance,
@@ -1825,7 +1829,7 @@ function calculateProjection(
 
 function calculateDepotNetReturnRate(
   grossReturnRate: number,
-  costRate: number = DEPOT_COST_RATE,
+  costRate: number = DEFAULT_DEPOT_COST_RATE,
   taxRate: number = DEPOT_CAPITAL_GAINS_TAX_RATE,
 ): number {
   const afterCostRate = grossReturnRate - costRate
@@ -1836,7 +1840,7 @@ function simulateDepotPath(
   startBalance: number,
   yearlyCashflows: number[],
   grossReturnRate: number,
-  costRate: number = DEPOT_COST_RATE,
+  costRate: number = DEFAULT_DEPOT_COST_RATE,
   taxRate: number = DEPOT_CAPITAL_GAINS_TAX_RATE,
 ): { yearlyPath: number[]; finalBalance: number } {
   const yearlyPath = [startBalance]
@@ -1861,20 +1865,22 @@ function findRequiredDepotGrossReturnRate(
   targetWealth: number,
   startBalance: number,
   yearlyCashflows: number[],
+  costRate: number = DEFAULT_DEPOT_COST_RATE,
+  taxRate: number = DEPOT_CAPITAL_GAINS_TAX_RATE,
 ): number | null {
   const maxSearchRate = 1
-  const zeroRateBalance = simulateDepotPath(startBalance, yearlyCashflows, 0).finalBalance
+  const zeroRateBalance = simulateDepotPath(startBalance, yearlyCashflows, 0, costRate, taxRate).finalBalance
   if (zeroRateBalance >= targetWealth) {
     return 0
   }
 
   let lower = 0
   let upper = 0.12
-  let upperBalance = simulateDepotPath(startBalance, yearlyCashflows, upper).finalBalance
+  let upperBalance = simulateDepotPath(startBalance, yearlyCashflows, upper, costRate, taxRate).finalBalance
   while (upperBalance < targetWealth && upper < maxSearchRate) {
     lower = upper
     upper = Math.min(upper * 2, maxSearchRate)
-    upperBalance = simulateDepotPath(startBalance, yearlyCashflows, upper).finalBalance
+    upperBalance = simulateDepotPath(startBalance, yearlyCashflows, upper, costRate, taxRate).finalBalance
   }
 
   if (upperBalance < targetWealth) {
@@ -1883,7 +1889,7 @@ function findRequiredDepotGrossReturnRate(
 
   for (let iteration = 0; iteration < 40; iteration += 1) {
     const midpoint = (lower + upper) / 2
-    const midpointBalance = simulateDepotPath(startBalance, yearlyCashflows, midpoint).finalBalance
+    const midpointBalance = simulateDepotPath(startBalance, yearlyCashflows, midpoint, costRate, taxRate).finalBalance
     if (midpointBalance >= targetWealth) {
       upper = midpoint
     } else {
@@ -3125,6 +3131,20 @@ function buildConfigSections(): ConfigSection[] {
             value.assumptions.vacancyRate = next
           },
         },
+        {
+          type: 'number',
+          id: 'config-depot-cost-rate',
+          label: 'Depotkosten p.a.',
+          hint: 'Laufende Kostenquote auf den Depotbestand im Vergleichsmodell.',
+          mode: 'percent',
+          min: 0,
+          max: 5,
+          step: 0.1,
+          get: (value) => value.assumptions.depotCostRate,
+          set: (value, next) => {
+            value.assumptions.depotCostRate = next
+          },
+        },
       ],
     },
     {
@@ -3593,6 +3613,7 @@ function normalizeDerivedConfigValues(nextConfig: CalculationConfig): void {
   nextConfig.incomeBounds.max = incomeMax
   nextConfig.incomeBounds.min = Math.min(nextConfig.incomeBounds.min, incomeMax)
   nextConfig.incomeBounds.step = Math.max(1, nextConfig.incomeBounds.step)
+  nextConfig.assumptions.depotCostRate = clamp(nextConfig.assumptions.depotCostRate, 0, 0.1)
   nextConfig.assumptions.purchaseYear = Math.round(nextConfig.assumptions.purchaseYear)
   nextConfig.assumptions.rentStartYear = Math.max(
     nextConfig.assumptions.purchaseYear,
@@ -3802,6 +3823,11 @@ function validateConfig(candidate: unknown): CalculationConfig {
     annualGrowthRate: asNumber(
       assumptionsCandidate.annualGrowthRate,
       'assumptions.annualGrowthRate',
+    ),
+    depotCostRate: asOptionalNumber(
+      assumptionsCandidate.depotCostRate,
+      DEFAULT_DEPOT_COST_RATE,
+      'assumptions.depotCostRate',
     ),
     years: asNumber(assumptionsCandidate.years, 'assumptions.years'),
     afaSchedule: Array.isArray(assumptionsCandidate.afaSchedule)
@@ -4704,4 +4730,5 @@ function resolvePublicAssetPath(path: string): string {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
   return `${normalizedBase}${normalizedPath}`
 }
+
 

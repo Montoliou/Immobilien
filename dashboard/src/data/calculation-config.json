@@ -34,6 +34,7 @@
     "refinanceRepaymentRate": 0.02,
     "monumentShare": 0.72,
     "annualGrowthRate": 0.02,
+    "depotCostRate": 0.008,
     "years": 20,
     "afaSchedule": [
       {
