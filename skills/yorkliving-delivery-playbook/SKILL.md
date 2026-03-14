@@ -16,10 +16,10 @@ Use this skill when changing the YorkLiving app's delivery model, presets, custo
 - Do not mix deployment targets.
 
 ## Delivery model
-- Advisor version lives on `mlp-mediziner-beratung.de`.
-- Customer version lives on `montolio.de`.
+- `mlp-mediziner-beratung.de/YorkLiving` is the live advisor domain.
+- `montolio.de/YorkLiving` is the branch review domain, but its base URL should still open the advisor version.
 - The advisor app keeps the full preset/editor workflow.
-- The customer app is reduced and should only be reached via generated customer links.
+- The reduced customer app should only be reached via generated customer links or explicit preview links.
 
 ## Customer link rules
 - Do not serialize full customer scenarios into long URLs.
