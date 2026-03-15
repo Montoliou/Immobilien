@@ -281,26 +281,36 @@ const customerHeroHighlights = [
     label: 'Wohnungsmix',
     value: 'ca. 150 Apartments',
     detail: '1 bis 2 Zimmer mit Einbauküche, 27 bis 35 m²',
+    explanation:
+      'Das Projekt umfasst rund 150 barrierefreie 1- bis 2-Zimmer-Apartments mit Einbauküche. Die kompakten Grundrisse sind auf eine breite Vermietbarkeit und eine einfache Wiedervermietung ausgelegt.',
   },
   {
     label: 'Mieterzielgruppe',
     value: 'breit vermietbar',
     detail: 'Studenten, Auszubildende, Senioren und Wochenendpendler',
+    explanation:
+      'Die Einheiten sprechen mehrere Zielgruppen gleichzeitig an. Dadurch verteilt sich das Vermietungsrisiko nicht nur auf ein einzelnes Mieterprofil.',
   },
   {
     label: 'Steuerpotenzial',
     value: 'Denkmal-AfA ca. 72 %',
     detail: 'modellhaft bezogen auf den Kaufpreis',
+    explanation:
+      'Die Denkmal-AfA betrifft nicht den gesamten Kaufpreis, sondern den begünstigten Sanierungsanteil. Im Modell wird dieser Sanierungsanteil mit rund 72 % des Kaufpreises angesetzt. Steuerlich können darauf im Jahr des Abschlusses der Maßnahme und in den folgenden sieben Jahren jeweils bis zu 9 % und in den folgenden vier Jahren jeweils bis zu 7 % angesetzt werden (§ 7i EStG).',
   },
   {
     label: 'Förderung',
     value: 'KfW 261 mit Zuschuss',
     detail: 'bis 150.000 € Darlehen und 10 % Tilgungszuschuss',
+    explanation:
+      'Für das Projekt ist modellhaft das KfW-Programm 261 in der EE-Klasse Denkmal hinterlegt. Voraussetzung bleibt, dass die Förderbedingungen zum Zeitpunkt der Zusage erfüllt sind.',
   },
   {
     label: 'Zeitplan',
     value: 'Bezug ab Q4 2028',
     detail: 'Baubeginn geplant im Q2 2027',
+    explanation:
+      'Die Rechnung orientiert sich am aktuellen Projektfahrplan: geplanter Baubeginn im zweiten Quartal 2027 und voraussichtliche Bezugsfertigkeit im vierten Quartal 2028.',
   },
 ] as const
 const DEFAULT_DEPOT_COST_RATE = 0.008
@@ -515,15 +525,21 @@ app.innerHTML = `
               Standort auf Google Maps öffnen
             </a>
           </div>
-          <div class="hero-project-facts">
+          <div id="hero-project-facts" class="hero-project-facts">
             ${customerHeroHighlights
               .map(
-                (fact) => `
-              <article class="hero-project-fact">
-                <p class="hero-project-fact-label">${fact.label}</p>
-                <p class="hero-project-fact-value">${fact.value}</p>
-                <p class="hero-project-fact-detail">${fact.detail}</p>
-              </article>`,
+                (fact, index) => `
+              <button
+                class="hero-project-fact"
+                type="button"
+                data-hero-fact-index="${index}"
+                aria-expanded="false"
+              >
+                <span class="hero-project-fact-label">${fact.label}</span>
+                <span class="hero-project-fact-value">${fact.value}</span>
+                <span class="hero-project-fact-detail">${fact.detail}</span>
+                <span class="hero-project-fact-explanation">${fact.explanation}</span>
+              </button>`,
               )
               .join('')}
           </div>
@@ -1076,6 +1092,7 @@ const heroSlideImage = getElementById<HTMLImageElement>('hero-slide-image')
 const heroSlideCaption = getElementById<HTMLElement>('hero-slide-caption')
 const heroSlidePrevButton = getElementById<HTMLButtonElement>('hero-slide-prev')
 const heroSlideNextButton = getElementById<HTMLButtonElement>('hero-slide-next')
+const heroProjectFacts = document.getElementById('hero-project-facts')
 const liquidityModal = getElementById<HTMLDivElement>('liquidity-modal')
 const liquidityModalContent = getElementById<HTMLDivElement>('liquidity-modal-content')
 const liquidityModalCloseButton = getElementById<HTMLButtonElement>('liquidity-modal-close')
@@ -1090,6 +1107,7 @@ let depotReturnRatePercent = scenarioDefaults.depotReturnRatePercent
 let liquidityViewMode: LiquidityViewMode = 'afterTaxChart'
 let heroSlideIndex = 0
 let heroSlideIntervalId: number | null = null
+let activeHeroFactIndex: number | null = null
 let latestProjectionResult: ProjectionResult | null = null
 let activeWealthPathIndex: number | null = null
 let editorSourcePreset = initialEditorSourcePreset
@@ -1116,6 +1134,7 @@ syncPresetSelector()
 renderConfigEditorSummary()
 commitEditorBaseline()
 renderHeroSlide()
+syncHeroProjectFacts()
 startHeroAutoplay()
 if (shouldUseStoredConfig && hasStoredConfig()) {
   setConfigStatus('Lokale Konfigurationsänderungen sind aktiv.')
@@ -1300,6 +1319,17 @@ heroSlideshow.addEventListener('mouseenter', stopHeroAutoplay)
 heroSlideshow.addEventListener('mouseleave', startHeroAutoplay)
 heroSlideshow.addEventListener('focusin', stopHeroAutoplay)
 heroSlideshow.addEventListener('focusout', startHeroAutoplay)
+
+heroProjectFacts?.addEventListener('click', (event) => {
+  const trigger = (event.target as HTMLElement).closest<HTMLElement>('[data-hero-fact-index]')
+  if (!trigger) {
+    return
+  }
+
+  const index = Number(trigger.dataset.heroFactIndex)
+  activeHeroFactIndex = activeHeroFactIndex === index ? null : index
+  syncHeroProjectFacts()
+})
 
 customerLinkModalCloseButton.addEventListener('click', () => {
   closeCustomerLinkModal()
@@ -2763,6 +2793,19 @@ function stopHeroAutoplay(): void {
 function restartHeroAutoplay(): void {
   stopHeroAutoplay()
   startHeroAutoplay()
+}
+
+function syncHeroProjectFacts(): void {
+  if (!heroProjectFacts) {
+    return
+  }
+
+  heroProjectFacts.querySelectorAll<HTMLElement>('[data-hero-fact-index]').forEach((item) => {
+    const index = Number(item.dataset.heroFactIndex)
+    const isActive = index == activeHeroFactIndex
+    item.classList.toggle('hero-project-fact-active', isActive)
+    item.setAttribute('aria-expanded', isActive ? 'true' : 'false')
+  })
 }
 
 function getApartment(apartmentId: ApartmentId): ApartmentOption {
