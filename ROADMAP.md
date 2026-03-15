@@ -118,9 +118,10 @@
   - `Restschuld`
 - Prüfe zusätzlich eine Spalte `Nettovermögen`, wenn dies die Lesbarkeit erhöht.
 - Aktueller Stand:
-  - Tabelle enthält `Restschuld` und `Immobilienwert`.
+  - Tabelle enthält `Restschuld`, `Immobilienwert` und `Depot-Wert`.
   - Eine Abschlusszeile `Summe` ist sticky und unterscheidet Summen von Endständen.
   - Header sind visuell verdichtet und Spaltenbreiten vereinheitlicht.
+  - Unter `So setzt sich das Ergebnis zusammen` wird zusätzlich der Depotwert des jeweils fokussierten Jahres gezeigt.
 
 ## Priority 1B: Prognosebereich klarer führen
 - Status im Branch `berater-kundenversion`: umgesetzt und lokal reviewbar.

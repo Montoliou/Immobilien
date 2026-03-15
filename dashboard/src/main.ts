@@ -254,7 +254,6 @@ const CUSTOMER_SCENARIO_API_PATH = '/api/create-customer-scenario.php'
 const LOCAL_APP_HOSTNAMES = new Set(['127.0.0.1', 'localhost'])
 const TAX_MODEL_DISCLAIMER =
   'Steuerliche Wirkung modellhaft: Grundlage ist ein angenähertes zvE; Soli und Kirchensteuer sind nicht berücksichtigt.'
-const TAX_MODEL_SHORT_NOTE = 'angenähertes zvE, ohne Soli/Kirchensteuer'
 const heroSlides: HeroSlide[] = [
   {
     image: '/project/hero-york-living-tomorrow.png',
@@ -636,22 +635,21 @@ app.innerHTML = `
 
         ${appMode === 'admin'
           ? `
-        <div class="assumption-grid">
-          <article>
-            <p class="assumption-label">Startvermögen nach Nebenkosten</p>
-            <p id="out-start-equity">-</p>
+        <div class="assumption-grid assumption-grid-featured">
+          <article class="assumption-card">
+            <p class="assumption-label">Gesamtinvestition</p>
+            <p id="out-total-investment" class="assumption-value assumption-value-strong">-</p>
+            <p id="out-total-investment-meta" class="assumption-meta">-</p>
           </article>
-          <article>
-            <p class="assumption-label">Gesamtinvestition inkl. Nebenkosten</p>
-            <p id="out-total-investment">-</p>
+          <article class="assumption-card">
+            <p class="assumption-label">Steuermodell</p>
+            <p id="out-tax-label" class="assumption-value assumption-value-strong">-</p>
+            <p id="out-tax-rate" class="assumption-meta tax-model-copy">-</p>
           </article>
-          <article>
-            <p id="out-tax-label" class="assumption-label">Steuermodell: Grundtabelle</p>
-            <p id="out-tax-rate" class="tax-model-copy">-</p>
-          </article>
-          <article>
-            <p class="assumption-label">Restschuld bei Anschlussfinanzierung</p>
-            <p id="out-refinance-debt">-</p>
+          <article class="assumption-card">
+            <p class="assumption-label">Restschuld nach Zinsbindung</p>
+            <p id="out-refinance-debt" class="assumption-value">-</p>
+            <p id="out-refinance-meta" class="assumption-meta">-</p>
           </article>
         </div>`
           : ''}
@@ -757,22 +755,20 @@ app.innerHTML = `
               <small>Details einblenden</small>
             </summary>
             <div class="secondary-details-body">
-              <div class="assumption-grid">
-                <article>
-                  <p class="assumption-label">Startvermögen nach Nebenkosten</p>
-                  <p id="out-start-equity">-</p>
+              <div class="assumption-grid assumption-grid-featured">
+                <article class="assumption-card">
+                  <p class="assumption-label">Gesamtinvestition</p>
+                  <p id="out-total-investment" class="assumption-value assumption-value-strong">-</p>
+                  <p id="out-total-investment-meta" class="assumption-meta">-</p>
                 </article>
-                <article>
-                  <p class="assumption-label">Gesamtinvestition inkl. Nebenkosten</p>
-                  <p id="out-total-investment">-</p>
+                <article class="assumption-card">
+                  <p class="assumption-label">Steuermodell</p>
+                  <p id="out-tax-label" class="assumption-value assumption-value-strong">-</p>
+                  <p id="out-tax-rate" class="assumption-meta tax-model-copy">-</p>
                 </article>
-                <article>
-                  <p id="out-tax-label" class="assumption-label">Steuermodell: Grundtabelle</p>
-                  <p id="out-tax-rate" class="tax-model-copy">-</p>
-                </article>
-                <article>
-                  <p class="assumption-label">Restschuld bei Anschlussfinanzierung</p>
-                  <p id="out-refinance-debt">-</p>
+                <article class="assumption-card">
+                  <p class="assumption-label">Restschuld nach Zinsbindung</p>
+                  <p id="out-refinance-debt" class="assumption-value">-</p>
                 </article>
               </div>
             </div>
@@ -1566,18 +1562,14 @@ function renderProjection(): void {
   setText('out-growth-rate', `${formatSignedPercent(result.annualGrowthRate * 100)} % pro Jahr`)
   setText('out-equity-amount', formatCurrency(result.startEquity))
   setText('out-path-end', formatCurrency(result.wealth20))
-  setText('out-start-equity', formatCurrency(result.initialNetWealth))
-  setText(
-    'out-total-investment',
-    `${formatCurrency(result.totalInvestment)} (inkl. ${formatCurrency(result.ancillaryCosts)} Nebenkosten = ${formatPercent(
-      assumptions.ancillaryCostRate * 100,
-    )} %)`,
+  setText('out-total-investment', formatCurrency(result.totalInvestment))
+  setOptionalText(
+    'out-total-investment-meta',
+    `inkl. ${formatCurrency(result.ancillaryCosts)} Nebenkosten · ${formatPercent(assumptions.ancillaryCostRate * 100)} Quote`,
   )
-  setText(
-    'out-tax-rate',
-    `Modell-Grenzsteuersatz ca. ${formatPercent(result.marginalTaxRate * 100)} %\n${TAX_MODEL_SHORT_NOTE}`,
-  )
-  setText('out-tax-label', `Steuermodell: ${getTaxTableLabel(result.taxTableMode)}`)
+  setText('out-tax-label', `${formatPercent(result.marginalTaxRate * 100)} %`)
+  setText('out-tax-rate', `Grenzsteuersatz
+${getTaxTableLabel(result.taxTableMode)} · angenähertes zvE`)
   setOptionalText('liquidity-tax-note', result.taxDisclaimer)
   setText('out-refinance-debt', formatCurrency(result.refinanceDebtBase))
   updateConsultationMailLink(result)
@@ -2005,6 +1997,7 @@ function renderWealthComposition(result: ProjectionResult, focusIndex: number | 
           cumulativeCashflow: 0,
           remainingDebt: result.initialDebt,
           netWealth: result.initialNetWealth,
+          depotValue: result.yearlyDepotPath[0] ?? result.startEquity,
         }
       : (() => {
           const row = result.yearlyLiquidityRows[displayIndex - 1]
@@ -2015,6 +2008,7 @@ function renderWealthComposition(result: ProjectionResult, focusIndex: number | 
             cumulativeCashflow: row.cumulativeCashflow,
             remainingDebt: row.remainingDebt,
             netWealth: row.netWealth,
+            depotValue: result.yearlyDepotPath[displayIndex] ?? 0,
           }
         })()
   const resultRows = [
@@ -2040,6 +2034,10 @@ function renderWealthComposition(result: ProjectionResult, focusIndex: number | 
         <div class="composition-row composition-total">
           <span>Nettovermögen</span>
           <span>${formatCurrency(snapshot.netWealth)}</span>
+        </div>
+        <div class="composition-row composition-secondary-total">
+          <span>Depotwert im selben Jahr</span>
+          <span class="${getToneClass(snapshot.depotValue)}">${formatSignedCurrency(snapshot.depotValue)}</span>
         </div>
       </div>
     </div>
@@ -2184,12 +2182,13 @@ function renderLiquidityTable(result: ProjectionResult): string {
   let totalLiquidityAfterTax = 0
 
   const rows = result.yearlyLiquidityRows
-    .map((row) => {
+    .map((row, index) => {
       const yearlyInterest = row.kfwInterest + row.bankInterest + row.refinanceInterest
       const yearlyPrincipal = row.kfwPrincipal + row.bankPrincipal + row.refinancePrincipal
       const yearlyAncillaryCost = row.vacancyCost + row.managementCost + row.maintenanceCost
       const liquidityBeforeTax = row.cashflow - row.taxBenefit
       const liquidityAfterTax = row.cashflow
+      const depotValue = result.yearlyDepotPath[index + 1] ?? result.depotWealth20
       cumulativeAfterTax += liquidityAfterTax
       totalRent += row.grossRent
       totalInterest += yearlyInterest
@@ -2212,12 +2211,14 @@ function renderLiquidityTable(result: ProjectionResult): string {
           <td class="${getToneClass(liquidityAfterTax)}">${formatSignedCurrency(liquidityAfterTax)}</td>
           <td class="${getToneClass(cumulativeAfterTax)}">${formatSignedCurrency(cumulativeAfterTax)}</td>
           <td class="${getToneClass(row.propertyValue)}">${formatSignedCurrency(row.propertyValue)}</td>
+          <td class="${getToneClass(depotValue)}">${formatSignedCurrency(depotValue)}</td>
         </tr>
       `
     })
     .join('')
 
   const finalRow = result.yearlyLiquidityRows[result.yearlyLiquidityRows.length - 1]
+  const finalDepotValue = result.yearlyDepotPath[result.yearlyDepotPath.length - 1] ?? result.depotWealth20
   const summaryRow = finalRow
     ? `
         <tfoot>
@@ -2233,6 +2234,7 @@ function renderLiquidityTable(result: ProjectionResult): string {
             <td class="${getToneClass(totalLiquidityAfterTax)}">${formatSignedCurrency(totalLiquidityAfterTax)}</td>
             <td class="${getToneClass(cumulativeAfterTax)}">${formatSignedCurrency(cumulativeAfterTax)}</td>
             <td class="${getToneClass(finalRow.propertyValue)}">${formatSignedCurrency(finalRow.propertyValue)}</td>
+            <td class="${getToneClass(finalDepotValue)}">${formatSignedCurrency(finalDepotValue)}</td>
           </tr>
         </tfoot>`
     : ''
@@ -2265,6 +2267,7 @@ function renderLiquidityTable(result: ProjectionResult): string {
               <th>Cashflow m. Effekt</th>
               <th>Kum.</th>
               <th>Immo-Wert</th>
+              <th>Depot-Wert</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>

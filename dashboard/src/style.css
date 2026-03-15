@@ -390,7 +390,7 @@ p {
 
 .config-editor-intro {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   max-width: 72ch;
 }
 
@@ -1347,7 +1347,9 @@ p {
 
 .tax-model-copy {
   white-space: pre-line;
-  line-height: 1.5;
+  line-height: 1.45;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .slider-value {
@@ -1720,7 +1722,7 @@ p {
 
 .liquidity-detail-table {
   width: 100%;
-  min-width: 1360px;
+  min-width: 1480px;
   border-collapse: collapse;
   font-size: 0.72rem;
 }
@@ -1975,20 +1977,83 @@ p {
 .assumption-grid {
   display: grid;
   gap: var(--space-16);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.assumption-grid article {
-  border: 1px solid rgb(255 255 255 / 64%);
-  border-radius: var(--radius-12);
-  padding: var(--space-16);
-  background: rgb(255 255 255 / 62%);
+.assumption-grid-featured {
+  align-items: stretch;
+}
+
+.assumption-card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  grid-template-rows: 54px 72px minmax(84px, auto);
+  gap: 10px;
+  min-height: 100%;
+  padding: 20px;
+  border: 1px solid rgb(190 182 170 / 86%);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 82%) 0%, rgb(245 248 250 / 76%) 100%);
+  box-shadow: 0 18px 40px rgb(3 61 93 / 10%);
+  backdrop-filter: blur(16px) saturate(1.05);
+  overflow: hidden;
+  transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
+  animation: assumptionCardReveal 0.32s ease both;
+}
+
+.assumption-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, #033d5d 0%, #6c8796 100%);
+  opacity: 0.9;
+}
+
+.assumption-card:hover {
+  transform: translateY(-2px);
+  border-color: rgb(3 61 93 / 24%);
+  box-shadow: 0 22px 48px rgb(3 61 93 / 14%);
 }
 
 .assumption-label {
+  display: flex;
+  align-items: flex-start;
   color: var(--ink-soft);
-  font-size: 0.82rem;
-  margin-bottom: var(--space-8);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.assumption-value {
+  display: flex;
+  align-items: flex-end;
+  align-self: end;
+  min-height: 72px;
+  color: var(--ink-strong);
+  font-size: 1.2rem;
+  line-height: 1.2;
+  font-weight: 700;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+
+.assumption-value-strong {
+  color: #033d5d;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.assumption-meta {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .secondary-details {
@@ -2394,6 +2459,18 @@ p {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes assumptionCardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
