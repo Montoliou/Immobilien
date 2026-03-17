@@ -1780,9 +1780,9 @@ p {
 
 .liquidity-detail-table th,
 .liquidity-detail-table td {
-  width: 108px;
-  min-width: 108px;
-  max-width: 108px;
+  width: 112px;
+  min-width: 112px;
+  max-width: 112px;
   padding: 8px 10px;
   border-bottom: 1px solid var(--base-2);
   text-align: right;
@@ -1792,9 +1792,9 @@ p {
 
 .liquidity-detail-table th:first-child,
 .liquidity-detail-table td:first-child {
-  width: 96px;
-  min-width: 96px;
-  max-width: 96px;
+  width: 88px;
+  min-width: 88px;
+  max-width: 88px;
   text-align: left;
 }
 
@@ -1802,11 +1802,47 @@ p {
   position: sticky;
   top: 0;
   z-index: 1;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  line-height: 1.2;
   color: var(--ink-soft);
   background: #f2f6f8;
+  white-space: normal;
+  vertical-align: bottom;
+}
+
+.liquidity-detail-table td {
+  background: rgb(255 255 255 / 55%);
+}
+
+.liquidity-detail-table .col-liquidity {
+  background: rgb(255 255 255 / 42%);
+}
+
+.liquidity-detail-table .col-liquidity-end {
+  border-right: 1px solid rgb(16 38 52 / 14%);
+}
+
+.liquidity-detail-table .col-wealth {
+  background: rgb(190 182 170 / 14%);
+}
+
+.liquidity-detail-table .col-wealth-start {
+  border-left: 1px solid rgb(16 38 52 / 14%);
+}
+
+.liquidity-cell-stack {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  white-space: normal;
+}
+
+.liquidity-cell-note {
+  font-size: 0.62rem;
+  line-height: 1.25;
+  color: var(--ink-soft);
 }
 
 .liquidity-detail-table tbody tr:last-child td {

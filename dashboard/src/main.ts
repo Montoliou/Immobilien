@@ -128,6 +128,7 @@ type YearlyLiquidityRow = {
   kfwPrincipal: number
   bankInterest: number
   bankPrincipal: number
+  kfwGrantCredit: number
   refinanceInterest: number
   refinancePrincipal: number
   debtService: number
@@ -163,6 +164,8 @@ type ProjectionResult = {
   postAfaMonthlyLiquidity: number
   afaTotalYears: number
   refinanceDebtBase: number
+  kfwGrant: number
+  kfwGrantProjectionYear: number | null
   grossYield: number
   netYieldBeforeDebt: number
   yearlyWealthPath: number[]
@@ -1112,6 +1115,7 @@ let latestProjectionResult: ProjectionResult | null = null
 let activeWealthPathIndex: number | null = null
 let editorSourcePreset = initialEditorSourcePreset
 let loadedProjectPresetId: string | null = initialLoadedProjectPresetId
+let persistPresetInAdminUrl = presetContext.hasExplicitPresetParam
 let editorBaselineSignature = ''
 let isEditorDirty = false
 let isLiquidityModalOpen = false
@@ -1498,9 +1502,36 @@ liquidityViewContent.addEventListener('click', (event) => {
 applyConfigButton.addEventListener('click', () => {
   try {
     const validConfig = buildConfigFromForm(configForm)
+    overwriteConfigSnapshot(config, validConfig)
     saveStoredConfig(validConfig)
-    setConfigStatus('Konfiguration gespeichert. Seite wird neu geladen.')
-    window.setTimeout(() => window.location.reload(), 250)
+    syncConfigFormValues(configForm, config)
+
+    if (!config.apartments.some((entry) => entry.id === selectedApartmentId)) {
+      selectedApartmentId = config.defaultApartmentId
+    }
+
+    annualGrossIncome = clamp(annualGrossIncome, config.incomeBounds.min, config.incomeBounds.max)
+    annualGrowthRatePercent = clamp(annualGrowthRatePercent, growthBounds.min, growthBounds.max)
+    investedEquity = clamp(investedEquity, equityBounds.min, equityBounds.max)
+    depotReturnRatePercent = clamp(depotReturnRatePercent, depotBounds.min, depotBounds.max)
+
+    writeInputValue(annualGrossIncome)
+    writeGrowthInputValue(annualGrowthRatePercent)
+    writeEquityInputValue(investedEquity)
+    renderApartmentCards()
+    renderTaxTableSelection()
+
+    persistPresetInAdminUrl = false
+    editorSourcePreset = buildCurrentPreset(validConfig)
+    loadedProjectPresetId = null
+    syncPresetSelector()
+    renderConfigEditorSummary()
+    commitEditorBaseline()
+    renderProjection()
+
+    setConfigStatus('Konfiguration gespeichert und für diese Beraterversion übernommen.')
+    setStatus('Parameter übernommen. Die Berechnung wurde aktualisiert.')
+    closeConfigEditor()
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
     setConfigStatus(`Konfiguration konnte nicht gespeichert werden: ${message}`, true)
@@ -1602,6 +1633,12 @@ function renderProjection(): void {
 ${getTaxTableLabel(result.taxTableMode)} · angenähertes zvE`)
   setOptionalText('liquidity-tax-note', result.taxDisclaimer)
   setText('out-refinance-debt', formatCurrency(result.refinanceDebtBase))
+  setOptionalText(
+    'out-refinance-meta',
+    result.kfwGrant > 0
+      ? `(inkl. ${formatCurrency(result.kfwGrant)} Tilgungszuschuss${result.kfwGrantProjectionYear !== null ? `, modellhaft ab Ende ${getCalendarYearForProjectionYear(result.kfwGrantProjectionYear)}` : ''})`
+      : '',
+  )
   updateConsultationMailLink(result)
   renderConfigEditorSummary()
 
@@ -1640,7 +1677,8 @@ function calculateProjection(
   const kfwLoan = Math.min(debtNeeded, assumptions.kfwLoanAmount)
   const bankLoan = Math.max(debtNeeded - kfwLoan, 0)
   const kfwGrant = kfwLoan > 0 ? Math.min(assumptions.kfwGrantAmount, kfwLoan) : 0
-  const initialKfwDebt = Math.max(kfwLoan - kfwGrant, 0)
+  const kfwGrantProjectionYear = kfwGrant > 0 ? getKfwGrantProjectionYear() : null
+  const initialKfwDebt = kfwLoan
   const initialBankDebt = bankLoan
   const initialDebt = initialKfwDebt + initialBankDebt
 
@@ -1679,6 +1717,7 @@ function calculateProjection(
     let kfwPrincipal = 0
     let bankInterest = 0
     let bankPrincipal = 0
+    let kfwGrantCredit = 0
     let refinanceInterest = 0
     let refinancePrincipal = 0
 
@@ -1711,6 +1750,12 @@ function calculateProjection(
       yearlyDebtService = kfwInterest + kfwPrincipal + bankInterest + bankPrincipal
       remainingKfwDebt -= kfwPrincipal
       remainingBankDebt -= bankPrincipal
+
+      if (kfwGrantProjectionYear !== null && year === kfwGrantProjectionYear) {
+        kfwGrantCredit = Math.min(kfwGrant, remainingKfwDebt)
+        remainingKfwDebt -= kfwGrantCredit
+      }
+
       remainingDebt = remainingKfwDebt + remainingBankDebt
     } else {
       refinanceInterest = remainingDebt * refinanceInterestRate
@@ -1768,6 +1813,7 @@ function calculateProjection(
       kfwPrincipal,
       bankInterest,
       bankPrincipal,
+      kfwGrantCredit,
       refinanceInterest,
       refinancePrincipal,
       debtService: yearlyDebtService,
@@ -1834,6 +1880,8 @@ function calculateProjection(
     postAfaMonthlyLiquidity,
     afaTotalYears,
     refinanceDebtBase,
+    kfwGrant,
+    kfwGrantProjectionYear,
     grossYield,
     netYieldBeforeDebt,
     yearlyWealthPath,
@@ -2094,7 +2142,14 @@ function renderWealthPath(propertyValues: number[], depotValues: number[] | null
         : `${index === 0 ? 'Start' : `Jahr ${index}`}: Immobilie ${formatCurrency(value)} | Depot ${formatCurrency(depotValue)}`
       const activeClass = activeWealthPathIndex === index ? ' path-col-active' : ''
       return `
-        <div class="path-col${activeClass}" data-wealth-index="${index}" tabindex="0" title="${title}">
+        <div
+          class="path-col${activeClass}"
+          data-wealth-index="${index}"
+          tabindex="0"
+          role="button"
+          title="${title}"
+          aria-label="${title}. Klick öffnet die Detailtabelle."
+        >
           <span class="path-bar-wrap">
             <span class="path-bar ${toneClass}" style="height: ${height.toFixed(2)}%"></span>
             ${markerMarkup}
@@ -2111,18 +2166,31 @@ function renderWealthPath(propertyValues: number[], depotValues: number[] | null
       renderWealthComposition(latestProjectionResult, activeWealthPathIndex)
     }
     pathElement.querySelectorAll<HTMLElement>('.path-col').forEach((col) => {
-      const isActive = index !== null && Number(col.dataset.wealthIndex) == index
+      const isActive = index !== null && Number(col.dataset.wealthIndex) === index
       col.classList.toggle('path-col-active', isActive)
     })
+  }
+
+  const openDetailsTable = (): void => {
+    if (latestProjectionResult) {
+      openLiquidityModal(latestProjectionResult)
+    }
   }
 
   pathElement.querySelectorAll<HTMLElement>('.path-col').forEach((col) => {
     const index = Number(col.dataset.wealthIndex)
     col.addEventListener('mouseenter', () => syncComposition(index))
     col.addEventListener('focus', () => syncComposition(index))
+    col.addEventListener('click', () => openDetailsTable())
+    col.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        openDetailsTable()
+      }
+    })
   })
 
-  pathElement.addEventListener('mouseleave', () => syncComposition(null))
+  pathElement.onmouseleave = () => syncComposition(null)
   pathElement.addEventListener('focusout', (event) => {
     const nextTarget = event.relatedTarget
     if (!(nextTarget instanceof Node) || !pathElement.contains(nextTarget)) {
@@ -2202,12 +2270,11 @@ function renderLiquidityTable(result: ProjectionResult): string {
   const endYear =
     result.yearlyLiquidityRows[result.yearlyLiquidityRows.length - 1]?.calendarYear ??
     assumptions.purchaseYear + projectionYears - 1
-  let cumulativeAfterTax = 0
   let totalRent = 0
   let totalInterest = 0
-  let totalPrincipal = 0
+  let totalPrincipalReduction = 0
   let totalAncillaryCost = 0
-  let totalTaxBenefit = 0
+  let totalTaxEffect = 0
   let totalLiquidityBeforeTax = 0
   let totalLiquidityAfterTax = 0
 
@@ -2215,33 +2282,43 @@ function renderLiquidityTable(result: ProjectionResult): string {
     .map((row, index) => {
       const yearlyInterest = row.kfwInterest + row.bankInterest + row.refinanceInterest
       const yearlyPrincipal = row.kfwPrincipal + row.bankPrincipal + row.refinancePrincipal
+      const yearlyPrincipalReduction = yearlyPrincipal + row.kfwGrantCredit
       const yearlyAncillaryCost = row.vacancyCost + row.managementCost + row.maintenanceCost
       const liquidityBeforeTax = row.cashflow - row.taxBenefit
       const liquidityAfterTax = row.cashflow
+      const propertyWealth = row.netWealth
       const depotValue = result.yearlyDepotPath[index + 1] ?? result.depotWealth20
-      cumulativeAfterTax += liquidityAfterTax
+      const grantNote = row.kfwGrantCredit > 0
+        ? `<span class="liquidity-cell-note">inkl. ${formatCurrency(row.kfwGrantCredit)} Zuschuss</span>`
+        : ''
+
       totalRent += row.grossRent
       totalInterest += yearlyInterest
-      totalPrincipal += yearlyPrincipal
+      totalPrincipalReduction += yearlyPrincipalReduction
       totalAncillaryCost += yearlyAncillaryCost
-      totalTaxBenefit += row.taxBenefit
+      totalTaxEffect += row.taxBenefit
       totalLiquidityBeforeTax += liquidityBeforeTax
       totalLiquidityAfterTax += liquidityAfterTax
 
       return `
         <tr>
           <td>${row.calendarYear}</td>
-          <td class="${getToneClass(row.grossRent)}">${formatSignedCurrency(row.grossRent)}</td>
-          <td class="${getToneClass(-yearlyInterest)}">${formatSignedCurrency(-yearlyInterest)}</td>
-          <td class="${getToneClass(-yearlyPrincipal)}">${formatSignedCurrency(-yearlyPrincipal)}</td>
-          <td class="${getToneClass(-row.remainingDebt)}">${formatSignedCurrency(-row.remainingDebt)}</td>
-          <td class="${getToneClass(-yearlyAncillaryCost)}">${formatSignedCurrency(-yearlyAncillaryCost)}</td>
-          <td class="${getToneClass(row.taxBenefit)}">${formatSignedCurrency(row.taxBenefit)}</td>
-          <td class="${getToneClass(liquidityBeforeTax)}">${formatSignedCurrency(liquidityBeforeTax)}</td>
-          <td class="${getToneClass(liquidityAfterTax)}">${formatSignedCurrency(liquidityAfterTax)}</td>
-          <td class="${getToneClass(cumulativeAfterTax)}">${formatSignedCurrency(cumulativeAfterTax)}</td>
-          <td class="${getToneClass(row.propertyValue)}">${formatSignedCurrency(row.propertyValue)}</td>
-          <td class="${getToneClass(depotValue)}">${formatSignedCurrency(depotValue)}</td>
+          <td class="col-liquidity ${getToneClass(row.grossRent)}">${formatSignedCurrency(row.grossRent)}</td>
+          <td class="col-liquidity ${getToneClass(-yearlyInterest)}">${formatSignedCurrency(-yearlyInterest)}</td>
+          <td class="col-liquidity ${getToneClass(-yearlyPrincipalReduction)}">
+            <div class="liquidity-cell-stack">
+              <span>${formatSignedCurrency(-yearlyPrincipalReduction)}</span>
+              ${grantNote}
+            </div>
+          </td>
+          <td class="col-liquidity ${getToneClass(-yearlyAncillaryCost)}">${formatSignedCurrency(-yearlyAncillaryCost)}</td>
+          <td class="col-liquidity ${getToneClass(row.taxBenefit)}">${formatSignedCurrency(row.taxBenefit)}</td>
+          <td class="col-liquidity ${getToneClass(liquidityBeforeTax)}">${formatSignedCurrency(liquidityBeforeTax)}</td>
+          <td class="col-liquidity col-liquidity-end ${getToneClass(liquidityAfterTax)}">${formatSignedCurrency(liquidityAfterTax)}</td>
+          <td class="col-wealth col-wealth-start ${getToneClass(row.propertyValue)}">${formatSignedCurrency(row.propertyValue)}</td>
+          <td class="col-wealth ${getToneClass(-row.remainingDebt)}">${formatSignedCurrency(-row.remainingDebt)}</td>
+          <td class="col-wealth ${getToneClass(propertyWealth)}">${formatSignedCurrency(propertyWealth)}</td>
+          <td class="col-wealth ${getToneClass(depotValue)}">${formatSignedCurrency(depotValue)}</td>
         </tr>
       `
     })
@@ -2254,17 +2331,17 @@ function renderLiquidityTable(result: ProjectionResult): string {
         <tfoot>
           <tr class="liquidity-detail-summary-row">
             <td>Summe</td>
-            <td class="${getToneClass(totalRent)}">${formatSignedCurrency(totalRent)}</td>
-            <td class="${getToneClass(-totalInterest)}">${formatSignedCurrency(-totalInterest)}</td>
-            <td class="${getToneClass(-totalPrincipal)}">${formatSignedCurrency(-totalPrincipal)}</td>
-            <td class="${getToneClass(-finalRow.remainingDebt)}">${formatSignedCurrency(-finalRow.remainingDebt)}</td>
-            <td class="${getToneClass(-totalAncillaryCost)}">${formatSignedCurrency(-totalAncillaryCost)}</td>
-            <td class="${getToneClass(totalTaxBenefit)}">${formatSignedCurrency(totalTaxBenefit)}</td>
-            <td class="${getToneClass(totalLiquidityBeforeTax)}">${formatSignedCurrency(totalLiquidityBeforeTax)}</td>
-            <td class="${getToneClass(totalLiquidityAfterTax)}">${formatSignedCurrency(totalLiquidityAfterTax)}</td>
-            <td class="${getToneClass(cumulativeAfterTax)}">${formatSignedCurrency(cumulativeAfterTax)}</td>
-            <td class="${getToneClass(finalRow.propertyValue)}">${formatSignedCurrency(finalRow.propertyValue)}</td>
-            <td class="${getToneClass(finalDepotValue)}">${formatSignedCurrency(finalDepotValue)}</td>
+            <td class="col-liquidity ${getToneClass(totalRent)}">${formatSignedCurrency(totalRent)}</td>
+            <td class="col-liquidity ${getToneClass(-totalInterest)}">${formatSignedCurrency(-totalInterest)}</td>
+            <td class="col-liquidity ${getToneClass(-totalPrincipalReduction)}">${formatSignedCurrency(-totalPrincipalReduction)}</td>
+            <td class="col-liquidity ${getToneClass(-totalAncillaryCost)}">${formatSignedCurrency(-totalAncillaryCost)}</td>
+            <td class="col-liquidity ${getToneClass(totalTaxEffect)}">${formatSignedCurrency(totalTaxEffect)}</td>
+            <td class="col-liquidity ${getToneClass(totalLiquidityBeforeTax)}">${formatSignedCurrency(totalLiquidityBeforeTax)}</td>
+            <td class="col-liquidity col-liquidity-end ${getToneClass(totalLiquidityAfterTax)}">${formatSignedCurrency(totalLiquidityAfterTax)}</td>
+            <td class="col-wealth col-wealth-start ${getToneClass(finalRow.propertyValue)}">${formatSignedCurrency(finalRow.propertyValue)}</td>
+            <td class="col-wealth ${getToneClass(-finalRow.remainingDebt)}">${formatSignedCurrency(-finalRow.remainingDebt)}</td>
+            <td class="col-wealth ${getToneClass(finalRow.netWealth)}">${formatSignedCurrency(finalRow.netWealth)}</td>
+            <td class="col-wealth ${getToneClass(finalDepotValue)}">${formatSignedCurrency(finalDepotValue)}</td>
           </tr>
         </tfoot>`
     : ''
@@ -2287,17 +2364,17 @@ function renderLiquidityTable(result: ProjectionResult): string {
           <thead>
             <tr>
               <th>Jahr</th>
-              <th>Miete</th>
-              <th>Zins</th>
-              <th>Tilg.</th>
-              <th>Restsch.</th>
-              <th>Nebenk.</th>
-              <th>Steuereffekt</th>
-              <th>Cashflow o. Effekt</th>
-              <th>Cashflow m. Effekt</th>
-              <th>Kum.</th>
-              <th>Immo-Wert</th>
-              <th>Depot-Wert</th>
+              <th class="col-liquidity">Miete</th>
+              <th class="col-liquidity">Zins</th>
+              <th class="col-liquidity">Tilgung</th>
+              <th class="col-liquidity">Neben-<br>kosten</th>
+              <th class="col-liquidity">Steuer-<br>effekt</th>
+              <th class="col-liquidity">Cashflow<br>ohne Effekt</th>
+              <th class="col-liquidity col-liquidity-end">Cashflow<br>mit Effekt</th>
+              <th class="col-wealth col-wealth-start">Immo-<br>Wert</th>
+              <th class="col-wealth">Restschuld</th>
+              <th class="col-wealth">Vermögen<br>Immobilie</th>
+              <th class="col-wealth">Depot-<br>Wert</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -2539,8 +2616,11 @@ function syncUrlState(): void {
   if (activeCustomerScenarioId) {
     params.set(CUSTOMER_SCENARIO_QUERY_KEY, activeCustomerScenarioId)
   } else {
-    params.set('preset', resolveCurrentPresetRouteId())
     params.set('mode', appMode)
+
+    if (appMode === 'customer' || persistPresetInAdminUrl) {
+      params.set('preset', resolveCurrentPresetRouteId())
+    }
 
     if (appMode === 'customer') {
       appendCustomerIdentityParams(params, getCurrentCustomerIdentity())
@@ -2900,6 +2980,25 @@ function getCalendarYearForProjectionYear(year: number): number {
 
 function getProjectionYearForAfaYear(afaYear: number): number {
   return assumptions.afaStartYear - assumptions.purchaseYear + afaYear
+}
+
+function getKfwGrantProjectionYear(): number | null {
+  if (assumptions.kfwGrantAmount <= 0 || assumptions.kfwLoanAmount <= 0) {
+    return null
+  }
+
+  const settlementCalendarYears = [
+    assumptions.purchaseYear + 2,
+    assumptions.purchaseYear + 4,
+    assumptions.purchaseYear + 5,
+  ]
+  const completionReadyCalendarYear =
+    assumptions.rentStartYear + (assumptions.rentStartQuarter >= 3 ? 1 : 0)
+  const selectedCalendarYear =
+    settlementCalendarYears.find((year) => year >= completionReadyCalendarYear) ??
+    settlementCalendarYears[settlementCalendarYears.length - 1]
+
+  return selectedCalendarYear - assumptions.purchaseYear + 1
 }
 
 function getRentShareForProjectionYear(year: number): number {
@@ -4402,6 +4501,7 @@ function syncPresetSelector(): void {
 function applyRuntimePreset(preset: RuntimePreset): void {
   editorSourcePreset = cloneRuntimePreset(preset)
   loadedProjectPresetId = presetManifest.some((entry) => entry.id === preset.id) ? preset.id : null
+  persistPresetInAdminUrl = loadedProjectPresetId !== null
 
   overwriteConfigSnapshot(config, preset.calculationConfig)
   syncConfigFormValues(configForm, config)
