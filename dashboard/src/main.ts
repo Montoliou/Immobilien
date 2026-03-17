@@ -2909,9 +2909,7 @@ function getAfaFactorForProjectionYear(year: number): number {
   if (!match) {
     return 0
   }
-
-  const startYearShare = calendarYear === assumptions.afaStartYear ? (5 - assumptions.afaStartQuarter) / 4 : 1
-  return match.rate * startYearShare
+  return match.rate
 }
 
 function getAfaPhaseOneEndYear(): number {
@@ -4876,5 +4874,4 @@ function resolvePublicAssetPath(path: string): string {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
   return `${normalizedBase}${normalizedPath}`
 }
-
 

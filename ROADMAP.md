@@ -349,3 +349,8 @@
 - Vermögensdiagramm ist in Kunden- und Beraterversion jetzt auch ein Einstieg in die Detailansicht.
   - Klick oder Tastaturfokus auf einen Vermögensbalken öffnet die Detailtabelle.
 
+## Latest Update 2026-03-17 2
+- Denkmal-AfA im Fertigstellungsjahr fachlich korrigiert.
+  - Die erhöhte AfA nach § 7i EStG wird im Modell im Jahr der Fertigstellung nicht mehr quartalsweise gekürzt.
+  - Für 2028 werden damit die vollen 9 % auf den modellierten Sanierungsanteil angesetzt.
+  - Ursache für den bisher zu niedrigen Steuereffekt war eine nicht passende Q4-Pro-Rata-Kürzung im Erstjahr.
