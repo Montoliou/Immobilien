@@ -331,3 +331,26 @@
 - Depotkosten sind jetzt als echter Editor-Parameter im Bereich `Markt & Entwicklung` konfigurierbar.
 - Bestehende Presets ohne Depotkosten-Feld bleiben kompatibel und fallen auf `0,8 %` zurück.
 - Die Depotlogik nutzt damit keinen festen UI-Wert mehr, sondern den laufenden Konfigurationsstand.
+
+## Latest Update 2026-03-17
+- Parameter-Editor übernimmt lokale Änderungen jetzt direkt in die laufende Beraterversion.
+  - `Übernehmen` speichert nicht nur, sondern aktualisiert die Berechnung sofort.
+  - Der Admin-Link pinnt lokale Änderungen danach nicht mehr fälschlich an ein Projekt-Preset.
+- KfW-Tilgungszuschuss fachlich nachgeschärft.
+  - Der Zuschuss wird nicht mehr als sofortiger Schuldabzug in Jahr 1 modelliert.
+  - Stattdessen wird er als modellhafte, spätere Schuldreduktion auf dem KfW-Teil angesetzt.
+  - In der Oberfläche wird dieser Zeitversatz an der Restschuld-Karte kenntlich gemacht.
+- Detailtabelle vereinheitlicht.
+  - Kunden- und Beraterversion nutzen nun dieselbe Detailtabelle als gemeinsame Basis.
+  - KfW-Tilgungszuschuss erscheint im Zuschussjahr in der Tilgungsspalte als Zuschuss, aber nicht als Liquiditätsabfluss des Kunden.
+  - Liquiditäts- und Vermögensspalten sind optisch getrennt.
+  - Vermögensblock rechts: `Immo-Wert`, `Restschuld`, `Vermögen Immobilie`, `Depot-Wert`.
+  - Tabellenköpfe sind zweizeilig verdichtet, damit die Tabelle nicht unnötig breiter wird.
+- Vermögensdiagramm ist in Kunden- und Beraterversion jetzt auch ein Einstieg in die Detailansicht.
+  - Klick oder Tastaturfokus auf einen Vermögensbalken öffnet die Detailtabelle.
+
+## Latest Update 2026-03-17 2
+- Denkmal-AfA im Fertigstellungsjahr fachlich korrigiert.
+  - Die erhöhte AfA nach § 7i EStG wird im Modell im Jahr der Fertigstellung nicht mehr quartalsweise gekürzt.
+  - Für 2028 werden damit die vollen 9 % auf den modellierten Sanierungsanteil angesetzt.
+  - Ursache für den bisher zu niedrigen Steuereffekt war eine nicht passende Q4-Pro-Rata-Kürzung im Erstjahr.

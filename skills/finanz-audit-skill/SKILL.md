@@ -86,6 +86,11 @@ Prüfpunkte:
 - Zins-/Tilgungsplan: Zinsanteil sinkt, Tilgungsanteil steigt
 - Restschuld nach Zinsbindung korrekt berechnet
 - Sondertilgungen korrekt berücksichtigt
+- KfW-Tilgungszuschüsse (z. B. Programm 261) NICHT pauschal in Jahr 1 vom Anfangsdarlehen abziehen
+- KfW-Tilgungszuschüsse als spätere Schuldreduktion modellieren:
+  - erst nach positiver Prüfung der `Bestätigung nach Durchführung (BnD)`
+  - Gutschrift an KfW-Verrechnungsterminen (laut KfW typischerweise 2, 4 oder 5 Jahre nach Monatsultimo des Zusagedatums)
+  - Tilgungszuschuss ist keine Barauszahlung an den Kunden
 - Disagio/Damnum korrekt behandelt (sofort abziehbar vs. verteilt)
 - Effektivzinssatz nach PAngV korrekt
 - Bei mehreren Darlehen: Summen stimmen
@@ -132,6 +137,10 @@ Prüfpunkte:
   ```
 - KRITISCH: Tilgung ist KEIN steuerlicher Abzug – nur Zinsen!
 - KRITISCH: AfA ist steuerlich abzugsfähig, aber kein Cashflow-Abfluss
+- KRITISCH: Tilgungszuschüsse und vergleichbare Fördergutschriften dürfen in Detailtabellen als Schuldreduktion/Sondertilgung sichtbar sein, aber NICHT als Liquiditätsabfluss des Kunden erscheinen
+- Bei kombinierten Detailtabellen Liquiditäts- und Vermögensspalten sauber trennen:
+  - Liquidität: Miete, Zins, Tilgung, Nebenkosten, Steuereffekt, Cashflow
+  - Vermögen: Immobilienwert, Restschuld, Vermögen Immobilie, Depotwert
 - Steuerersparnis kommt zeitversetzt (Steuererklärung im Folgejahr)
   → wird das in der Liquiditätsdarstellung berücksichtigt oder
   vereinfachend unterstellt?
@@ -227,3 +236,17 @@ Besondere Aufmerksamkeit bei der Prüfung:
   Projekten ggf. aktuelle Werte recherchieren.
 - **JavaScript-spezifisch**: Besonderes Augenmerk auf Floating-Point-
   Probleme, da die Apps typischerweise in React/TS/Vite gebaut sind.
+
+## Ergänzende Learnings aus York-Living-Audits
+
+- Wenn Berater-Apps lokale Parameter-Editoren nutzen, muss zwischen `Projekt-Preset` und `lokal übernommener Arbeitskonfiguration` sauber unterschieden werden.
+  - Ein expliziter `?preset=`-Parameter in der Admin-URL darf lokal übernommene Konfigurationen nicht beim Reload wieder verdrängen.
+- Für gemischte Vermögens-/Liquiditätsdarstellungen gilt:
+  - Vermögensdiagramme dürfen zur Detailtabelle verlinken, wenn Hover/Fokus und Tabellenlogik denselben Jahresindex verwenden.
+  - Depotvergleichswerte sollten in denselben Jahresrastern wie die Immobilienwerte geführt werden.
+- Bei Förderlogik immer prüfen:
+  - ist die Förderung ein echter Cashflow,
+  - eine spätere Schuldgutschrift,
+  - oder nur ein Zuschuss auf förderfähige Kosten.
+  Diese drei Fälle dürfen nicht vermischt werden.
+
