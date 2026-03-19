@@ -1,0 +1,440 @@
+{
+  "identity": {
+    "slug": "buildingm",
+    "title": "Building M Mannheim",
+    "subtitle": "Neubauprojekt in Mannheim-Franklin",
+    "address": "Mannheim-Franklin",
+    "city": "Mannheim",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Mannheim+Franklin"
+  },
+  "contact": {
+    "consultationEmail": "heike.mueller@werner-wohnbau.de",
+    "consultationPhoneLabel": "Heike Müller: 0172 7345688",
+    "consultationPhoneLink": "tel:+491727345688",
+    "bookingUrl": "mailto:heike.mueller@werner-wohnbau.de"
+  },
+  "content": {
+    "hero": {
+      "eyebrow": "Building M Mannheim",
+      "headline": "Neubau-Check für Mannheim-Franklin",
+      "intro": "Building M bündelt Neubauwohnungen in Mannheim-Franklin mit KfW-40-NH-(QNG)-Standard. Im Draft wird die steuerliche Wirkung modellhaft als lineare Gebäude-AfA plus Sonder-AfA nach § 7b gezeigt und die Finanzierung mit einem KfW-298-Darlehen für nicht selbst genutzte Neubauwohnungen angenähert.",
+      "customerLead": "Building M bündelt Neubauwohnungen in Mannheim-Franklin mit KfW-40-NH-(QNG)-Standard. Im Draft wird die steuerliche Wirkung modellhaft als lineare Gebäude-AfA plus Sonder-AfA nach § 7b gezeigt und die Finanzierung mit einem KfW-298-Darlehen für nicht selbst genutzte Neubauwohnungen angenähert.",
+      "advisorLead": "Nutzen Sie diesen Draft als Startpunkt für das nächste Immobilien-Dashboard. Förderlogik, Zeitachse und Steuermodell müssen vor Freigabe noch fachlich geprüft werden.",
+      "backgroundImage": "media/image-03.jpg",
+      "facts": [
+        {
+          "id": "wohnmix",
+          "label": "Wohnmix",
+          "value": "200 Neubauwohnungen",
+          "detail": "2 bis 3 Zimmer, ca. 56 bis 82 m²",
+          "explanation": "Laut Exposé umfasst Building M rund 200 Neubauwohnungen in Mannheim-Franklin. Die dargestellten Mustergrundrisse liegen im Spektrum von ca. 56 bis 82 Quadratmetern."
+        },
+        {
+          "id": "energiestandard",
+          "label": "Energiestandard",
+          "value": "KfW 40-NH (QNG)",
+          "detail": "modelliert als KfW 298 bei QNG-Standard",
+          "explanation": "Aus dem Exposé ist KfW 40-NH mit QNG erkennbar. Für eine vermietete Neubauwohnung ist damit im Draft das KfW-Produkt 298 als relevanter Förderpfad angesetzt: bis zu 150.000 Euro Kredit je Wohneinheit, kein Tilgungszuschuss, vergünstigter Zinssatz und tilgungsfreie Anlaufjahre nach KfW-Produktbedingungen."
+        },
+        {
+          "id": "steuerpotenzial",
+          "label": "Steuerpotenzial",
+          "value": "Sonder-AfA § 7b",
+          "detail": "modellhaft zzgl. regulärer Gebäude-AfA",
+          "explanation": "Im Draft wird § 7b EStG modellhaft als Sonder-AfA von 5 % im Jahr der Fertigstellung und in den folgenden drei Jahren auf die gedeckelte AfA-Basis angesetzt. Zusätzlich läuft eine reguläre Gebäude-AfA auf den angenäherten AfA-fähigen Anteil. Die finale Freigabe hängt an Bauantrag, QNG-Nachweis und der Kaufpreisaufteilung zwischen Grund und Boden sowie Gebäude."
+        },
+        {
+          "id": "preisniveau",
+          "label": "Preisniveau",
+          "value": "ca. 7.200-7.450 €/m²",
+          "detail": "Mieterwartung ab ca. 17 €/m²",
+          "explanation": "Das Exposé nennt Quadratmeterpreise zwischen ca. 7.200 und 7.450 Euro sowie eine Mieterwartung ab ca. 17 Euro pro Quadratmeter. Diese Werte sind als Draft-Annahmen in das Bundle übernommen."
+        },
+        {
+          "id": "zeitplan",
+          "label": "Vertriebsstart",
+          "value": "Beurkundung ab Q3 2026",
+          "detail": "Vertriebsstart laut Exposé in Kürze",
+          "explanation": "Zeitlich ist im Exposé nur der Vertriebsstart bzw. die Beurkundung ab dem dritten Quartal 2026 genannt. Fertigstellung und Mietbeginn müssen noch ergänzt werden und sind im Draft nur als Annahme hinterlegt."
+        }
+      ],
+      "location": {
+        "title": "Standort Franklin Mannheim",
+        "detail": "Projektlage Mannheim-Franklin laut Exposé. Genaue Straßenadresse im Draft noch offen.",
+        "buttonLabel": "Standort auf Google Maps öffnen"
+      },
+      "journeySteps": [
+        {
+          "title": "Musterwohnung wählen",
+          "copy": "Draft-Variante mit 2 oder 3 Zimmer auswählen und den Grundriss prüfen."
+        },
+        {
+          "title": "Einkommen und Eigenkapital setzen",
+          "copy": "Eingaben für den Szenariovergleich anpassen. Förder- und AfA-Logik bleiben vorerst im Review-Status."
+        },
+        {
+          "title": "Draft-Prognose prüfen",
+          "copy": "Liquidität, Vermögen und Depotvergleich als erster Prüfstand, nicht als final freigegebenes Modell."
+        }
+      ],
+      "marketFacts": {
+        "title": "Was aus dem Exposé bereits sicher vorliegt.",
+        "lead": "Diese Kennzahlen stammen direkt aus dem Exposé und bilden die belastbare Grundlage für den Draft. Alles Weitere bleibt bis zum Review als offene Annahme markiert.",
+        "items": [
+          {
+            "id": "units",
+            "number": "200",
+            "title": "Neubauwohnungen",
+            "copy": "Das Exposé nennt rund 200 Einheiten im Projekt."
+          },
+          {
+            "id": "sizes",
+            "number": "56-82 m²",
+            "title": "Wohnungsgrößen",
+            "copy": "Mustergrundrisse für 2- bis 3-Zimmerwohnungen."
+          },
+          {
+            "id": "pricing",
+            "number": "7.200-7.450 €",
+            "title": "Preis pro m²",
+            "copy": "Preisband laut Exposé, Basis für die Draft-Kaufpreise."
+          },
+          {
+            "id": "rent",
+            "number": "ab 17 €/m²",
+            "title": "Mieterwartung",
+            "copy": "Im Draft als Startannahme für den Mietansatz genutzt."
+          }
+        ]
+      }
+    }
+  },
+  "media": {
+    "heroSlides": [
+      {
+        "image": "media/image-05.jpg",
+        "alt": "Building M Rendering",
+        "caption": "Projektvisualisierung"
+      },
+      {
+        "image": "media/image-04.jpg",
+        "alt": "Building M Gebäudeperspektive",
+        "caption": "Gebäudeperspektive"
+      },
+      {
+        "image": "media/image-03.jpg",
+        "alt": "Mannheim-Franklin Luftbild",
+        "caption": "Projektumfeld"
+      }
+    ],
+    "gallery": [
+      {
+        "image": "media/image-05.jpg",
+        "alt": "Building M Rendering",
+        "caption": "Projektvisualisierung"
+      },
+      {
+        "image": "media/image-04.jpg",
+        "alt": "Building M Gebäudeperspektive",
+        "caption": "Gebäudeperspektive"
+      },
+      {
+        "image": "media/image-03.jpg",
+        "alt": "Mannheim-Franklin Luftbild",
+        "caption": "Projektumfeld"
+      },
+      {
+        "image": "media/image-01.png",
+        "alt": "Mustergrundriss 2-Zimmer",
+        "caption": "Mustergrundriss 2-Zimmer"
+      },
+      {
+        "image": "media/image-02.png",
+        "alt": "Mustergrundriss 3-Zimmer",
+        "caption": "Mustergrundriss 3-Zimmer"
+      }
+    ]
+  },
+  "financeModel": {
+    "defaults": {
+      "defaultApartmentId": "a",
+      "defaultAnnualGrossIncome": 100000,
+      "incomeBounds": {
+        "min": 0,
+        "max": 300000,
+        "step": 100
+      },
+      "equityModel": {
+        "incomeMonthsFactor": 8,
+        "minEquity": 20000,
+        "maxTotalInvestmentRatio": 0.4
+      },
+      "assumptions": {
+        "rentPerSqm": 17.0,
+        "ancillaryCostRate": 0.085,
+        "vacancyRate": 0,
+        "monthlyManagementFlat": 70,
+        "monthlyMaintenanceFlat": 30,
+        "purchaseYear": 2026,
+        "rentStartYear": 2028,
+        "rentStartQuarter": 4,
+        "afaStartYear": 2028,
+        "afaStartQuarter": 4,
+        "kfwLoanAmount": 150000,
+        "kfwInterestRate": 0.006,
+        "kfwRepaymentRate": 0.02,
+        "kfwGraceYears": 1,
+        "kfwGrantAmount": 0,
+        "bankInterestRate": 0.038,
+        "bankRepaymentRate": 0.02,
+        "zinsbindungJahre": 10,
+        "refinanceInterestRate": 0.03,
+        "refinanceRepaymentRate": 0.02,
+        "monumentShare": 0.0,
+        "annualGrowthRate": 0.02,
+        "depotCostRate": 0.008,
+        "years": 20,
+        "afaSchedule": [
+          {
+            "startYear": 1,
+            "endYear": 4,
+            "rate": 0.05
+          },
+          {
+            "startYear": 5,
+            "endYear": 5,
+            "rate": 0.0
+          }
+        ],
+        "depreciableShare": 0.68,
+        "regularAfaRate": 0.03,
+        "specialAfaBasisCapPerSqm": 4000,
+        "specialAfaCostCeilingPerSqm": 5200
+      },
+      "taxBrackets": [
+        {
+          "maxMonthlyIncome": 2800,
+          "rate": 0.24
+        },
+        {
+          "maxMonthlyIncome": 3800,
+          "rate": 0.29
+        },
+        {
+          "maxMonthlyIncome": 5200,
+          "rate": 0.34
+        },
+        {
+          "maxMonthlyIncome": 7000,
+          "rate": 0.38
+        },
+        {
+          "maxMonthlyIncome": 999999,
+          "rate": 0.42
+        }
+      ],
+      "apartments": [
+        {
+          "id": "a",
+          "label": "Apartment A",
+          "subtitle": "2-Zimmer, ca. 56 m²",
+          "size": 56,
+          "purchasePrice": 403200,
+          "image": "media/image-01.png",
+          "monthlyManagement": 85,
+          "monthlyMaintenance": 90,
+          "monthlyOtherCost": 30
+        },
+        {
+          "id": "b",
+          "label": "Apartment B",
+          "subtitle": "3-Zimmer, ca. 82 m²",
+          "size": 82,
+          "purchasePrice": 610900,
+          "image": "media/image-02.png",
+          "monthlyManagement": 105,
+          "monthlyMaintenance": 120,
+          "monthlyOtherCost": 35
+        }
+      ]
+    },
+    "scenarioDefaults": {
+      "apartmentId": "a",
+      "taxTableMode": "grund",
+      "annualGrossIncome": 100000,
+      "annualGrowthRatePercent": 2.0,
+      "investedEquity": 34272,
+      "depotReturnRatePercent": 6
+    },
+    "taxModelMode": "approximate",
+    "taxDisclaimer": "Draft aus Exposé: steuerliche Wirkung aktuell als lineare Gebäude-AfA plus modellierte Sonder-AfA § 7b. KfW 298 ist als Investorendarlehen angenähert; Gebäudeanteil, Bauantrag und endgültige Förderlogik müssen vor Freigabe fachlich bestätigt werden.",
+    "depreciationProfile": {
+      "type": "special-7b",
+      "label": "Neubau mit Sonder-AfA § 7b (Draft)",
+      "confidence": "medium",
+      "notes": [
+        "§ 7b wird modellhaft mit 5 % Sonder-AfA im Fertigstellungsjahr und in den folgenden drei Jahren angesetzt.",
+        "Zusätzlich läuft eine lineare Gebäude-AfA von 3 % auf einen angenäherten AfA-fähigen Anteil von 68 % des Kaufpreises.",
+        "Die finale Freigabe hängt an der tatsächlichen Kaufpreisaufteilung und den gesetzlichen Zugangsvoraussetzungen."
+      ]
+    },
+    "fundingProfiles": [
+      {
+        "type": "kfw-297-298",
+        "label": "KfW 298 (Investor / Ersterwerb mit QNG) – Draft",
+        "confidence": "medium",
+        "notes": [
+          "Für nicht selbst genutzte klimafreundliche Neubauwohnungen ist 298 der relevante KfW-Pfad, nicht 297.",
+          "Im Draft angesetzt: 150.000 Euro Kredit je Wohneinheit bei QNG-Standard, kein Tilgungszuschuss.",
+          "Der Zinssatz ist modellhaft mit 0,6 % p.a. angesetzt, basierend auf der KfW-Mitteilung vom 27.02.2026 zu verbesserten KFN-Konditionen bei Effizienzhaus 40 und 10 Jahren Laufzeit/Zinsbindung.",
+          "Die finale Finanzierungsfreigabe hängt an tagesaktuellen KfW-Konditionen und der tatsächlichen Zusage über den Finanzierungspartner."
+        ]
+      },
+      {
+        "type": "bank-loan",
+        "label": "Standard-Annuitätendarlehen (Restfinanzierung Draft)",
+        "confidence": "low",
+        "notes": [
+          "Der nicht über KfW 298 abgedeckte Kapitalbedarf läuft im Draft über die Bankfinanzierung.",
+          "Bankkonditionen sind Annahmen für die Draft-Vorschau und müssen ersetzt werden."
+        ]
+      }
+    ],
+    "subsidyEvents": []
+  },
+  "presets": [
+    {
+      "propertySlug": "buildingm",
+      "id": "buildingm-default",
+      "label": "Building M Draft Standard",
+      "version": "0.1.0-draft",
+      "updatedAt": "2026-03-19T00:00:00.000Z",
+      "calculationConfig": {
+        "defaultApartmentId": "a",
+        "defaultAnnualGrossIncome": 100000,
+        "incomeBounds": {
+          "min": 0,
+          "max": 300000,
+          "step": 100
+        },
+        "equityModel": {
+          "incomeMonthsFactor": 8,
+          "minEquity": 20000,
+          "maxTotalInvestmentRatio": 0.4
+        },
+        "assumptions": {
+          "rentPerSqm": 17.0,
+          "ancillaryCostRate": 0.085,
+          "vacancyRate": 0,
+          "monthlyManagementFlat": 70,
+          "monthlyMaintenanceFlat": 30,
+          "purchaseYear": 2026,
+          "rentStartYear": 2028,
+          "rentStartQuarter": 4,
+          "afaStartYear": 2028,
+          "afaStartQuarter": 4,
+          "kfwLoanAmount": 150000,
+          "kfwInterestRate": 0.006,
+          "kfwRepaymentRate": 0.02,
+          "kfwGraceYears": 1,
+          "kfwGrantAmount": 0,
+          "bankInterestRate": 0.038,
+          "bankRepaymentRate": 0.02,
+          "zinsbindungJahre": 10,
+          "refinanceInterestRate": 0.03,
+          "refinanceRepaymentRate": 0.02,
+          "monumentShare": 0.0,
+          "annualGrowthRate": 0.02,
+          "depotCostRate": 0.008,
+          "years": 20,
+          "afaSchedule": [
+            {
+              "startYear": 1,
+              "endYear": 4,
+              "rate": 0.05
+            },
+            {
+              "startYear": 5,
+              "endYear": 5,
+              "rate": 0.0
+            }
+          ],
+          "depreciableShare": 0.68,
+          "regularAfaRate": 0.03,
+          "specialAfaBasisCapPerSqm": 4000,
+          "specialAfaCostCeilingPerSqm": 5200
+        },
+        "taxBrackets": [
+          {
+            "maxMonthlyIncome": 2800,
+            "rate": 0.24
+          },
+          {
+            "maxMonthlyIncome": 3800,
+            "rate": 0.29
+          },
+          {
+            "maxMonthlyIncome": 5200,
+            "rate": 0.34
+          },
+          {
+            "maxMonthlyIncome": 7000,
+            "rate": 0.38
+          },
+          {
+            "maxMonthlyIncome": 999999,
+            "rate": 0.42
+          }
+        ],
+        "apartments": [
+          {
+            "id": "a",
+            "label": "Apartment A",
+            "subtitle": "2-Zimmer, ca. 56 m²",
+            "size": 56,
+            "purchasePrice": 403200,
+            "image": "media/image-01.png",
+            "monthlyManagement": 85,
+            "monthlyMaintenance": 90,
+            "monthlyOtherCost": 30
+          },
+          {
+            "id": "b",
+            "label": "Apartment B",
+            "subtitle": "3-Zimmer, ca. 82 m²",
+            "size": 82,
+            "purchasePrice": 610900,
+            "image": "media/image-02.png",
+            "monthlyManagement": 105,
+            "monthlyMaintenance": 120,
+            "monthlyOtherCost": 35
+          }
+        ]
+      },
+      "scenarioDefaults": {
+        "apartmentId": "a",
+        "taxTableMode": "grund",
+        "annualGrossIncome": 100000,
+        "annualGrowthRatePercent": 2.0,
+        "investedEquity": 34272,
+        "depotReturnRatePercent": 6
+      }
+    }
+  ],
+  "compliance": {
+    "reviewStatus": "draft",
+    "warnings": [
+      "Adresse im Projektbereich Mannheim-Franklin ist noch nicht straßenscharf verifiziert.",
+      "Der AfA-fähige Gebäudewertanteil von 68 % ist mit den vorhandenen Unterlagen nicht belegbar und bleibt bis zu Vertragsunterlagen oder Kaufpreisaufteilung eine unbestätigte Draft-Annahme.",
+      "KfW 298 ist modellhaft mit 150.000 Euro je Wohneinheit, 0,6 % Zins und 1 tilgungsfreiem Jahr angesetzt; tagesaktuelle Konditionen und Zusagefähigkeit müssen über den Finanzierungspartner bestätigt werden.",
+      "Mietbeginn und Fertigstellung sind im Draft Annahmen und müssen gegen den Projektplan geprüft werden.",
+      "Wohnungspreise sind aus Größen- und m²-Preisband abgeleitet, nicht aus einer offiziellen Preisliste."
+    ],
+    "extractionConfidence": {
+      "identity": "medium",
+      "content": "medium",
+      "media": "high",
+      "financeModel": "medium"
+    }
+  }
+}

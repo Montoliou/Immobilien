@@ -5,10 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build --base=/YorkLiving/",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "dev:fixed": "vite --host 127.0.0.1 --port 5174 --strictPort",
-    "dev:open": "vite --host 127.0.0.1 --port 5174 --strictPort --open"
+    "dev:open": "vite --host 127.0.0.1 --port 5174 --strictPort --open",
+    "compile:properties": "node ../scripts/property_pipeline/compile_properties.mjs",
+    "predev": "npm run compile:properties",
+    "predev:fixed": "npm run compile:properties",
+    "predev:open": "npm run compile:properties",
+    "prepreview": "npm run compile:properties",
+    "prebuild": "npm run compile:properties"
   },
   "devDependencies": {
     "typescript": "~5.9.3",

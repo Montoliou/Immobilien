@@ -1,0 +1,10 @@
+{
+  "manualOverrides": {
+    "depreciationProfile": "monument-7i",
+    "fundingProfiles": [
+      "kfw-261",
+      "bank-loan"
+    ],
+    "reviewStatus": "reviewed"
+  }
+}

@@ -49,6 +49,15 @@
   - customer mode is entered only via generated customer links (`?customer=<token>`) or explicit preview links with `mode=customer`
 
 ## Learned Workflow Patterns
+- AfA profiles must be property-specific and explicit. Do not silently reuse Denkmal logic for Neubau cases.
+- Denkmal / Sanierungsgebiet:
+  - model the begünstigter Sanierungsanteil separately from the non-depreciable land share.
+  - `§ 7i` / `§ 7h` enhanced AfA is a special AfA layer on the eligible modernization/restoration basis.
+- Neubau mit `§ 7b`:
+  - model regular building AfA separately from the `§ 7b` special AfA.
+  - `§ 7b` is not a Denkmal profile and must never be approximated through `monumentShare`.
+  - the model needs an explicit AfA-fähiger Anteil, a regular building-AfA rate, and the `§ 7b` capped basis/eligibility checks.
+  - final release requires review of purchase-price allocation, Bauantrag / eligibility timing, and any current statutory caps.
 - Customer links are generated from the advisor version only.
 - Customer scenarios should be persisted as server-side JSON snapshots, not long query-string payloads.
 - Full-screen parameter editing works better than a corner drawer for advisor preparation.

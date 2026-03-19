@@ -91,6 +91,21 @@ Prüfpunkte:
   - erst nach positiver Prüfung der `Bestätigung nach Durchführung (BnD)`
   - Gutschrift an KfW-Verrechnungsterminen (laut KfW typischerweise 2, 4 oder 5 Jahre nach Monatsultimo des Zusagedatums)
   - Tilgungszuschuss ist keine Barauszahlung an den Kunden
+
+- Bei Neubauprojekten mit Sonder-AfA `§ 7b` gilt:
+  - `§ 7b` ist NICHT Denkmal-AfA und darf nie über `monumentShare` angenähert werden.
+  - Prüfe getrennt:
+    - reguläre Gebäude-AfA auf den AfA-fähigen Gebäude-/Herstellungskostenanteil
+    - zusätzliche `§ 7b`-Sonder-AfA auf die gedeckelte förderfähige Basis
+  - Für eine belastbare Modellierung braucht der Code mindestens:
+    - `depreciableShare` (AfA-fähiger Anteil des Kaufpreises)
+    - `regularAfaRate`
+    - `specialAfaBasisCapPerSqm`
+    - `specialAfaCostCeilingPerSqm`
+  - Ohne verifizierte Kaufpreisaufteilung zwischen Grund/Boden und Gebäude bleibt `§ 7b` nur ein Draft-Modell und darf nicht als final freigegebene Steuerwirkung kommuniziert werden.
+- Bei Denkmal- oder Sanierungsobjekten (`§ 7i`, `§ 7h`) gilt weiterhin:
+  - begünstigter Sanierungsanteil separat modellieren
+  - lineare Altbau-/Gebäude-AfA und Sonder-AfA nicht vermischen
 - Disagio/Damnum korrekt behandelt (sofort abziehbar vs. verteilt)
 - Effektivzinssatz nach PAngV korrekt
 - Bei mehreren Darlehen: Summen stimmen

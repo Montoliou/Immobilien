@@ -63,7 +63,10 @@ try {
         'preset' => $preset,
     ];
 
-    $storageDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'YorkLiving-data' . DIRECTORY_SEPARATOR . 'customer-scenarios';
+    $appRoot = dirname(__DIR__, 2);
+    $baseSegment = basename($appRoot);
+    $dataRoot = dirname($appRoot) . DIRECTORY_SEPARATOR . $baseSegment . '-data';
+    $storageDir = $dataRoot . DIRECTORY_SEPARATOR . 'customer-scenarios';
     if (!is_dir($storageDir) && !mkdir($storageDir, 0775, true) && !is_dir($storageDir)) {
         respond(500, ['error' => 'Speicherverzeichnis für Kundenszenarien konnte nicht angelegt werden.']);
     }
@@ -81,7 +84,7 @@ try {
 
     respond(201, [
         'id' => $scenarioId,
-        'path' => '/YorkLiving-data/customer-scenarios/' . $scenarioId . '.json',
+        'path' => '/' . $baseSegment . '-data/customer-scenarios/' . $scenarioId . '.json',
     ]);
 } catch (JsonException) {
     respond(400, ['error' => 'Request-Body ist kein gültiges JSON.']);

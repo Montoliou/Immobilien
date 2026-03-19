@@ -1,0 +1,31 @@
+{
+  "recognizedFacts": {
+    "projectName": "Building M Mannheim-Franklin",
+    "units": 200,
+    "unitMix": "2-3 Zimmer",
+    "sizeRangeSqm": [
+      56,
+      82
+    ],
+    "pricePerSqmRange": [
+      7200,
+      7450
+    ],
+    "expectedRentPerSqm": 17,
+    "salesStart": "Q3 2026",
+    "energyStandard": "KfW 40-NH (QNG)",
+    "specialAfa": "§ 7b EStG"
+  },
+  "manualAssumptions": {
+    "rentStartYear": 2028,
+    "rentStartQuarter": 4,
+    "bankInterestRate": 0.038,
+    "bankRepaymentRate": 0.02
+  },
+  "reviewRequired": [
+    "Sonder-AfA § 7b fachlich modellieren",
+    "konkrete Projektadresse ergänzen",
+    "exakte Wohnungs- und Preisliste importieren",
+    "Förderlogik zu KfW 40-NH/QNG klären"
+  ]
+}

@@ -1,0 +1,677 @@
+{
+  "identity": {
+    "slug": "yorkliving",
+    "title": "York Living Münster",
+    "subtitle": "Denkmalschutzquartier im York-Quartier Münster",
+    "address": "Walesallee / Angusweg, 48167 Münster",
+    "city": "Münster",
+    "mapUrl": "https://maps.app.goo.gl/t3fVRBvNyz42xWMp7"
+  },
+  "contact": {
+    "consultationEmail": "andreas.peters@mlp.de",
+    "consultationPhoneLabel": "Direkt anrufen: 0151/19690871",
+    "consultationPhoneLink": "tel:+4915119690871",
+    "bookingUrl": "https://mlp-onlineberatung.flexperto.com/expert?id=782"
+  },
+  "content": {
+    "hero": {
+      "eyebrow": "York Living Münster",
+      "headline": "Ihr Immobilien-Check in 60 Sekunden",
+      "intro": "York Living verbindet kompakte Apartments, Denkmal-AfA und KfW-Förderung im York-Quartier Münster. Auf Basis Ihrer Eingaben zeigt die App eine modellhafte 20-Jahres-Prognose.",
+      "customerLead": "York Living verbindet kompakte Apartments, Denkmal-AfA und KfW-Förderung im York-Quartier Münster. Auf Basis Ihrer Eingaben zeigt die App eine modellhafte 20-Jahres-Prognose.",
+      "advisorLead": "Wählen Sie einen Grundriss, geben Sie Ihr Bruttojahreseinkommen ein und erhalten Sie sofort eine transparente 20-Jahres-Prognose für Ihr mögliches Vermögen.",
+      "backgroundImage": "media/hero-york-today.png",
+      "facts": [
+        {
+          "id": "wohnmix",
+          "label": "Wohnungsmix",
+          "value": "ca. 150 Apartments",
+          "detail": "1 bis 2 Zimmer mit Einbauküche, 27 bis 35 m²",
+          "explanation": "Das Projekt umfasst rund 150 barrierefreie 1- bis 2-Zimmer-Apartments mit Einbauküche. Die kompakten Grundrisse sind auf eine breite Vermietbarkeit und eine einfache Wiedervermietung ausgelegt."
+        },
+        {
+          "id": "mieterzielgruppe",
+          "label": "Mieterzielgruppe",
+          "value": "breit vermietbar",
+          "detail": "Studenten, Auszubildende, Senioren und Wochenendpendler",
+          "explanation": "Die Einheiten sprechen mehrere Zielgruppen gleichzeitig an. Dadurch verteilt sich das Vermietungsrisiko nicht nur auf ein einzelnes Mieterprofil."
+        },
+        {
+          "id": "steuerpotenzial",
+          "label": "Steuerpotenzial",
+          "value": "Denkmal-AfA ca. 72 %",
+          "detail": "modellhaft bezogen auf den Kaufpreis",
+          "explanation": "Die Denkmal-AfA betrifft nicht den gesamten Kaufpreis, sondern den begünstigten Sanierungsanteil. Im Modell wird dieser Sanierungsanteil mit rund 72 % des Kaufpreises angesetzt. Steuerlich können darauf im Jahr des Abschlusses der Maßnahme und in den folgenden sieben Jahren jeweils bis zu 9 % und in den folgenden vier Jahren jeweils bis zu 7 % angesetzt werden (§ 7i EStG)."
+        },
+        {
+          "id": "foerderung",
+          "label": "Förderung",
+          "value": "KfW 261 mit Zuschuss",
+          "detail": "bis 150.000 € Darlehen und 10 % Tilgungszuschuss",
+          "explanation": "Für das Projekt ist modellhaft das KfW-Programm 261 in der EE-Klasse Denkmal hinterlegt. Voraussetzung bleibt, dass die Förderbedingungen zum Zeitpunkt der Zusage erfüllt sind."
+        },
+        {
+          "id": "zeitplan",
+          "label": "Zeitplan",
+          "value": "Bezug ab Q4 2028",
+          "detail": "Baubeginn geplant im Q2 2027",
+          "explanation": "Die Rechnung orientiert sich am aktuellen Projektfahrplan: geplanter Baubeginn im zweiten Quartal 2027 und voraussichtliche Bezugsfertigkeit im vierten Quartal 2028."
+        }
+      ],
+      "location": {
+        "title": "Standort im York-Quartier",
+        "detail": "Walesallee / Angusweg, 48167 Münster · ca. 15–20 Minuten bis zum Domplatz",
+        "buttonLabel": "Standort auf Google Maps öffnen"
+      },
+      "journeySteps": [
+        {
+          "title": "Wohnungsoption wählen",
+          "copy": "Apartment A oder B auswählen und den Grundriss direkt prüfen."
+        },
+        {
+          "title": "Einkommen und Steuermodell setzen",
+          "copy": "Bruttojahreseinkommen, Steuermodell und Eigenkapital auf Ihr Szenario anpassen."
+        },
+        {
+          "title": "Prognose verstehen",
+          "copy": "Liquidität, Vermögen und Depotvergleich über 20 Jahre transparent einordnen."
+        }
+      ],
+      "marketFacts": {
+        "title": "Ein paar schnelle Fakten über Münster.",
+        "lead": "Diese Kennzahlen zeigen vor allem eines: Münster verbindet knappen Wohnraum, hohe Nachfrage nach kompakten Apartments und eine Lage mit kurzen Wegen in die Innenstadt.",
+        "items": [
+          {
+            "id": "housing-demand",
+            "number": "30.000",
+            "title": "zusätzliche Wohnungen bis 2040",
+            "copy": "Das entspricht rund 18 % des Bestands von 2022.",
+            "barType": "demand",
+            "barValue": 18
+          },
+          {
+            "id": "single-households",
+            "number": "55,3 %",
+            "title": "Einpersonen-Haushalte (2024)",
+            "compare": [
+              "2011: 53,0 %",
+              "2024: 55,3 %"
+            ],
+            "barType": "single",
+            "barValue": 55.3
+          },
+          {
+            "id": "vacancy",
+            "number": "1,1 %",
+            "title": "Leerstand aktuell",
+            "compare": [
+              "Ist: 1,1 %",
+              "Soll: 3,0 %"
+            ],
+            "barType": "dual",
+            "barValue": 36.7,
+            "secondaryBarValue": 100
+          },
+          {
+            "id": "location",
+            "number": "15–20 min",
+            "title": "Fahrzeit zur Innenstadt",
+            "copy": "Ca. 6,5 km bis Domplatz per Rad oder Auto laut Broschüre. Ein Ort, der Investment und Lebensqualität zusammenbringt."
+          }
+        ]
+      }
+    }
+  },
+  "media": {
+    "heroSlides": [
+      {
+        "image": "media/hero-york-living-tomorrow.png",
+        "alt": "York Living morgen",
+        "caption": "York Living morgen"
+      },
+      {
+        "image": "media/hero-modern-living.png",
+        "alt": "Modern Living",
+        "caption": "Modern Living"
+      },
+      {
+        "image": "media/hero-york-today.png",
+        "alt": "York Quartier heute",
+        "caption": "York Quartier heute"
+      },
+      {
+        "image": "media/hero-bike-city.png",
+        "alt": "Münster, die Fahrrad-Stadt",
+        "caption": "Münster, die Fahrrad-Stadt"
+      }
+    ],
+    "gallery": [
+      {
+        "image": "media/hero-york-living-tomorrow.png",
+        "alt": "York Living Rendering",
+        "caption": "Visualisierung York Living"
+      },
+      {
+        "image": "media/hero-modern-living.png",
+        "alt": "Innenraum",
+        "caption": "Moderne Wohnsituation"
+      },
+      {
+        "image": "media/hero-york-today.png",
+        "alt": "York Quartier heute",
+        "caption": "Quartiersbild heute"
+      },
+      {
+        "image": "media/hero-bike-city.png",
+        "alt": "Münster Fahrradinfrastruktur",
+        "caption": "Münster als Fahrradstadt"
+      }
+    ]
+  },
+  "financeModel": {
+    "defaults": {
+      "defaultApartmentId": "a",
+      "defaultAnnualGrossIncome": 80000,
+      "incomeBounds": {
+        "min": 0,
+        "max": 300000,
+        "step": 100
+      },
+      "equityModel": {
+        "incomeMonthsFactor": 8,
+        "minEquity": 20000,
+        "maxTotalInvestmentRatio": 0.4
+      },
+      "assumptions": {
+        "rentPerSqm": 19.25,
+        "ancillaryCostRate": 0.085,
+        "vacancyRate": 0,
+        "monthlyManagementFlat": 70,
+        "monthlyMaintenanceFlat": 30,
+        "purchaseYear": 2027,
+        "rentStartYear": 2028,
+        "rentStartQuarter": 4,
+        "afaStartYear": 2028,
+        "afaStartQuarter": 4,
+        "kfwLoanAmount": 150000,
+        "kfwInterestRate": 0.029,
+        "kfwRepaymentRate": 0.024,
+        "kfwGraceYears": 3,
+        "kfwGrantAmount": 15000,
+        "bankInterestRate": 0.0485,
+        "bankRepaymentRate": 0.02,
+        "zinsbindungJahre": 10,
+        "refinanceInterestRate": 0.03,
+        "refinanceRepaymentRate": 0.02,
+        "monumentShare": 0.72,
+        "annualGrowthRate": 0.02,
+        "depotCostRate": 0.008,
+        "years": 20,
+        "afaSchedule": [
+          {
+            "startYear": 1,
+            "endYear": 8,
+            "rate": 0.09
+          },
+          {
+            "startYear": 9,
+            "endYear": 12,
+            "rate": 0.07
+          }
+        ]
+      },
+      "taxBrackets": [
+        {
+          "maxMonthlyIncome": 2800,
+          "rate": 0.24
+        },
+        {
+          "maxMonthlyIncome": 3800,
+          "rate": 0.29
+        },
+        {
+          "maxMonthlyIncome": 5200,
+          "rate": 0.34
+        },
+        {
+          "maxMonthlyIncome": 7000,
+          "rate": 0.38
+        },
+        {
+          "maxMonthlyIncome": 999999,
+          "rate": 0.42
+        }
+      ],
+      "apartments": [
+        {
+          "id": "a",
+          "label": "Apartment A",
+          "subtitle": "1-Zimmer, ca. 27 m2",
+          "size": 27,
+          "purchasePrice": 210000,
+          "image": "media/apartment-a.png",
+          "monthlyManagement": 55,
+          "monthlyMaintenance": 60,
+          "monthlyOtherCost": 20
+        },
+        {
+          "id": "b",
+          "label": "Apartment B",
+          "subtitle": "2-Zimmer, ca. 35 m2",
+          "size": 35,
+          "purchasePrice": 275000,
+          "image": "media/apartment-b.png",
+          "monthlyManagement": 65,
+          "monthlyMaintenance": 75,
+          "monthlyOtherCost": 25
+        }
+      ]
+    },
+    "scenarioDefaults": {
+      "apartmentId": "a",
+      "taxTableMode": "grund",
+      "annualGrossIncome": 80000,
+      "annualGrowthRatePercent": 2.0,
+      "investedEquity": 17850,
+      "depotReturnRatePercent": 6
+    },
+    "taxModelMode": "approximate",
+    "taxDisclaimer": "Steuerliche Wirkung modellhaft: Grundlage ist ein angenähertes zvE; Soli und Kirchensteuer sind nicht berücksichtigt.",
+    "depreciationProfile": {
+      "type": "monument-7i",
+      "label": "Denkmal-AfA § 7i EStG",
+      "confidence": "high",
+      "notes": [
+        "Sanierungsanteil modellhaft mit 72 % des Kaufpreises angesetzt.",
+        "Erhöhte AfA im Fertigstellungsjahr und den Folgejahren nach § 7i EStG."
+      ]
+    },
+    "fundingProfiles": [
+      {
+        "type": "kfw-261",
+        "label": "KfW 261 Effizienzhaus Denkmal EE-Klasse",
+        "confidence": "high",
+        "notes": [
+          "Bis 150.000 € Darlehen",
+          "10 % Tilgungszuschuss modelliert"
+        ]
+      },
+      {
+        "type": "bank-loan",
+        "label": "Annuitätendarlehen",
+        "confidence": "high",
+        "notes": [
+          "Bankdarlehen für den Restfinanzierungsanteil"
+        ]
+      }
+    ],
+    "subsidyEvents": [
+      {
+        "id": "kfw-tilgungszuschuss",
+        "type": "tilgungszuschuss",
+        "label": "KfW-Tilgungszuschuss",
+        "amount": 15000,
+        "timing": "modellhaft ab Ende 2029",
+        "confidence": "medium",
+        "notes": [
+          "Zeitversetzte Schuldreduktion nach BnD/Verrechnungspunkt",
+          "Nicht als Kundenliquidität modellieren"
+        ]
+      }
+    ]
+  },
+  "presets": [
+    {
+      "id": "york-living-default",
+      "label": "York Living Standard",
+      "version": "2.0.0",
+      "updatedAt": "2026-03-18T00:00:00.000Z",
+      "calculationConfig": {
+        "defaultApartmentId": "a",
+        "defaultAnnualGrossIncome": 80000,
+        "incomeBounds": {
+          "min": 0,
+          "max": 300000,
+          "step": 100
+        },
+        "equityModel": {
+          "incomeMonthsFactor": 8,
+          "minEquity": 20000,
+          "maxTotalInvestmentRatio": 0.4
+        },
+        "assumptions": {
+          "rentPerSqm": 19.25,
+          "ancillaryCostRate": 0.085,
+          "vacancyRate": 0,
+          "monthlyManagementFlat": 70,
+          "monthlyMaintenanceFlat": 30,
+          "purchaseYear": 2027,
+          "rentStartYear": 2028,
+          "rentStartQuarter": 4,
+          "afaStartYear": 2028,
+          "afaStartQuarter": 4,
+          "kfwLoanAmount": 150000,
+          "kfwInterestRate": 0.029,
+          "kfwRepaymentRate": 0.024,
+          "kfwGraceYears": 3,
+          "kfwGrantAmount": 15000,
+          "bankInterestRate": 0.0485,
+          "bankRepaymentRate": 0.02,
+          "zinsbindungJahre": 10,
+          "refinanceInterestRate": 0.03,
+          "refinanceRepaymentRate": 0.02,
+          "monumentShare": 0.72,
+          "annualGrowthRate": 0.02,
+          "depotCostRate": 0.008,
+          "years": 20,
+          "afaSchedule": [
+            {
+              "startYear": 1,
+              "endYear": 8,
+              "rate": 0.09
+            },
+            {
+              "startYear": 9,
+              "endYear": 12,
+              "rate": 0.07
+            }
+          ]
+        },
+        "taxBrackets": [
+          {
+            "maxMonthlyIncome": 2800,
+            "rate": 0.24
+          },
+          {
+            "maxMonthlyIncome": 3800,
+            "rate": 0.29
+          },
+          {
+            "maxMonthlyIncome": 5200,
+            "rate": 0.34
+          },
+          {
+            "maxMonthlyIncome": 7000,
+            "rate": 0.38
+          },
+          {
+            "maxMonthlyIncome": 999999,
+            "rate": 0.42
+          }
+        ],
+        "apartments": [
+          {
+            "id": "a",
+            "label": "Apartment A",
+            "subtitle": "1-Zimmer, ca. 27 m2",
+            "size": 27,
+            "purchasePrice": 210000,
+            "image": "media/apartment-a.png",
+            "monthlyManagement": 55,
+            "monthlyMaintenance": 60,
+            "monthlyOtherCost": 20
+          },
+          {
+            "id": "b",
+            "label": "Apartment B",
+            "subtitle": "2-Zimmer, ca. 35 m2",
+            "size": 35,
+            "purchasePrice": 275000,
+            "image": "media/apartment-b.png",
+            "monthlyManagement": 65,
+            "monthlyMaintenance": 75,
+            "monthlyOtherCost": 25
+          }
+        ]
+      },
+      "scenarioDefaults": {
+        "apartmentId": "a",
+        "taxTableMode": "grund",
+        "annualGrossIncome": 80000,
+        "annualGrowthRatePercent": 2.0,
+        "investedEquity": 17850,
+        "depotReturnRatePercent": 6
+      },
+      "propertySlug": "yorkliving"
+    },
+    {
+      "id": "yorklivingaerzteangestellt",
+      "label": "York Living Angestellte Ärzte",
+      "version": "1.0.0",
+      "updatedAt": "2026-03-07T12:13:15.545385Z",
+      "calculationConfig": {
+        "defaultApartmentId": "a",
+        "defaultAnnualGrossIncome": 120000,
+        "incomeBounds": {
+          "min": 0,
+          "max": 300000,
+          "step": 100
+        },
+        "equityModel": {
+          "incomeMonthsFactor": 8,
+          "minEquity": 20000,
+          "maxTotalInvestmentRatio": 0.4
+        },
+        "assumptions": {
+          "rentPerSqm": 19.25,
+          "ancillaryCostRate": 0.085,
+          "vacancyRate": 0,
+          "monthlyManagementFlat": 70,
+          "monthlyMaintenanceFlat": 30,
+          "purchaseYear": 2027,
+          "rentStartYear": 2028,
+          "rentStartQuarter": 4,
+          "afaStartYear": 2028,
+          "afaStartQuarter": 4,
+          "kfwLoanAmount": 150000,
+          "kfwInterestRate": 0.028999999999999998,
+          "kfwRepaymentRate": 0.024,
+          "kfwGraceYears": 3,
+          "kfwGrantAmount": 15000,
+          "bankInterestRate": 0.048499999999999995,
+          "bankRepaymentRate": 0.02,
+          "zinsbindungJahre": 10,
+          "refinanceInterestRate": 0.03,
+          "refinanceRepaymentRate": 0.02,
+          "monumentShare": 0.72,
+          "annualGrowthRate": 0.02,
+          "years": 20,
+          "afaSchedule": [
+            {
+              "startYear": 1,
+              "endYear": 8,
+              "rate": 0.09
+            },
+            {
+              "startYear": 9,
+              "endYear": 12,
+              "rate": 0.07
+            }
+          ]
+        },
+        "taxBrackets": [
+          {
+            "maxMonthlyIncome": 2800,
+            "rate": 0.24
+          },
+          {
+            "maxMonthlyIncome": 3800,
+            "rate": 0.29
+          },
+          {
+            "maxMonthlyIncome": 5200,
+            "rate": 0.34
+          },
+          {
+            "maxMonthlyIncome": 7000,
+            "rate": 0.38
+          },
+          {
+            "maxMonthlyIncome": 999999,
+            "rate": 0.42
+          }
+        ],
+        "apartments": [
+          {
+            "id": "a",
+            "label": "Apartment A",
+            "subtitle": "1-Zimmer, ca. 27 m²",
+            "size": 27,
+            "purchasePrice": 210000,
+            "image": "media/apartment-a.png",
+            "monthlyManagement": 55,
+            "monthlyMaintenance": 60,
+            "monthlyOtherCost": 20
+          },
+          {
+            "id": "b",
+            "label": "Apartment B",
+            "subtitle": "2-Zimmer, ca. 35 m²",
+            "size": 35,
+            "purchasePrice": 275000,
+            "image": "media/apartment-b.png",
+            "monthlyManagement": 65,
+            "monthlyMaintenance": 75,
+            "monthlyOtherCost": 25
+          }
+        ]
+      },
+      "scenarioDefaults": {
+        "apartmentId": "a",
+        "taxTableMode": "grund",
+        "annualGrossIncome": 120000,
+        "annualGrowthRatePercent": 2,
+        "investedEquity": 17850,
+        "depotReturnRatePercent": 6
+      },
+      "propertySlug": "yorkliving"
+    },
+    {
+      "id": "yorklivingndgl",
+      "label": "York Living Niedergelassen",
+      "version": "1.0.0",
+      "updatedAt": "2026-03-07T12:10:25.268Z",
+      "calculationConfig": {
+        "defaultApartmentId": "b",
+        "defaultAnnualGrossIncome": 150000,
+        "incomeBounds": {
+          "min": 0,
+          "max": 1000000,
+          "step": 100
+        },
+        "equityModel": {
+          "incomeMonthsFactor": 8,
+          "minEquity": 0,
+          "maxTotalInvestmentRatio": 1
+        },
+        "assumptions": {
+          "rentPerSqm": 19.25,
+          "ancillaryCostRate": 0.085,
+          "vacancyRate": 0,
+          "monthlyManagementFlat": 70,
+          "monthlyMaintenanceFlat": 30,
+          "purchaseYear": 2027,
+          "rentStartYear": 2028,
+          "rentStartQuarter": 4,
+          "afaStartYear": 2028,
+          "afaStartQuarter": 4,
+          "kfwLoanAmount": 150000,
+          "kfwInterestRate": 0.028999999999999998,
+          "kfwRepaymentRate": 0.024,
+          "kfwGraceYears": 3,
+          "kfwGrantAmount": 15000,
+          "bankInterestRate": 0.048499999999999995,
+          "bankRepaymentRate": 0.02,
+          "zinsbindungJahre": 10,
+          "refinanceInterestRate": 0.03,
+          "refinanceRepaymentRate": 0.02,
+          "monumentShare": 0.72,
+          "annualGrowthRate": 0.02,
+          "years": 20,
+          "afaSchedule": [
+            {
+              "startYear": 1,
+              "endYear": 8,
+              "rate": 0.09
+            },
+            {
+              "startYear": 9,
+              "endYear": 12,
+              "rate": 0.07
+            }
+          ]
+        },
+        "taxBrackets": [
+          {
+            "maxMonthlyIncome": 2800,
+            "rate": 0.24
+          },
+          {
+            "maxMonthlyIncome": 3800,
+            "rate": 0.29
+          },
+          {
+            "maxMonthlyIncome": 5200,
+            "rate": 0.34
+          },
+          {
+            "maxMonthlyIncome": 7000,
+            "rate": 0.38
+          },
+          {
+            "maxMonthlyIncome": 999999,
+            "rate": 0.42
+          }
+        ],
+        "apartments": [
+          {
+            "id": "a",
+            "label": "Apartment A",
+            "subtitle": "1-Zimmer, ca. 27 m²",
+            "size": 27,
+            "purchasePrice": 210000,
+            "image": "media/apartment-a.png",
+            "monthlyManagement": 55,
+            "monthlyMaintenance": 40,
+            "monthlyOtherCost": 0
+          },
+          {
+            "id": "b",
+            "label": "Apartment B",
+            "subtitle": "2-Zimmer, ca. 35 m²",
+            "size": 35,
+            "purchasePrice": 275000,
+            "image": "media/apartment-b.png",
+            "monthlyManagement": 65,
+            "monthlyMaintenance": 50,
+            "monthlyOtherCost": 0
+          }
+        ]
+      },
+      "scenarioDefaults": {
+        "apartmentId": "a",
+        "taxTableMode": "grund",
+        "annualGrossIncome": 80000,
+        "annualGrowthRatePercent": 2,
+        "investedEquity": 17850,
+        "depotReturnRatePercent": 6
+      },
+      "propertySlug": "yorkliving"
+    }
+  ],
+  "compliance": {
+    "reviewStatus": "reviewed",
+    "warnings": [
+      "Steuerliche Wirkung bleibt ein Näherungsmodell.",
+      "Förderbedingungen müssen zum Zeitpunkt der Zusage erneut geprüft werden."
+    ],
+    "extractionConfidence": {
+      "identity": "high",
+      "hero": "high",
+      "units": "high",
+      "depreciation": "high",
+      "funding": "high",
+      "media": "high"
+    }
+  }
+}
