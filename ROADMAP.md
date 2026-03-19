@@ -354,3 +354,8 @@
   - Die erhöhte AfA nach § 7i EStG wird im Modell im Jahr der Fertigstellung nicht mehr quartalsweise gekürzt.
   - Für 2028 werden damit die vollen 9 % auf den modellierten Sanierungsanteil angesetzt.
   - Ursache für den bisher zu niedrigen Steuereffekt war eine nicht passende Q4-Pro-Rata-Kürzung im Erstjahr.
+
+## Update 2026-03-19
+- Der Haupteingabebereich erfasst `Eigenkapital` jetzt als Eingabefeld statt als Slider.
+- Die EK-Grenze ist dynamisch pro Wohnung auf `0` bis `Kaufpreis + Nebenkosten` gesetzt.
+- Die alten globalen EK-Grenzparameter sind aus dem sichtbaren Parameter-Editor entfernt.

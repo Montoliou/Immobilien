@@ -240,7 +240,7 @@ const PREVIEW_PRESET_STORAGE_KEY = 'york-living-preview-preset'
 const PREVIEW_PRESET_QUERY_KEY = 'previewPreset'
 const DEFAULT_PRESET_ID = 'york-living-default'
 const growthBounds = { min: -2, max: 5, step: 0.1 }
-const equityBounds = { min: 0, max: 30000, step: 500 }
+const equityInputStep = 500
 const depotBounds = { min: 0, max: 12, step: 0.1 }
 const CONSULTATION_EMAIL = 'andreas.peters@mlp.de'
 const CONSULTATION_PHONE_LABEL = 'Direkt anrufen: 0151/19690871'
@@ -594,32 +594,46 @@ app.innerHTML = `
 
         <div class="income-block">
           <h2>2. Ihr Bruttojahreseinkommen</h2>
-          <div class="income-row">
-            <label class="field field-income-compact" for="annual-gross-income">
-              <span>Bruttojahreseinkommen (EUR)</span>
+          <div class="income-layout-grid">
+            <div class="income-stack">
+              <label class="field field-income-compact" for="annual-gross-income">
+                <span>Bruttojahreseinkommen (EUR)</span>
+                <input
+                  id="annual-gross-income"
+                  type="number"
+                  min="${config.incomeBounds.min}"
+                  max="${config.incomeBounds.max}"
+                  step="${config.incomeBounds.step}"
+                  inputmode="decimal"
+                />
+              </label>
+
+              <fieldset class="field field-tax-mode">
+                <legend>Steuermodell</legend>
+                <div class="tax-mode-switch" role="radiogroup" aria-label="Steuermodell wählen">
+                  <label class="tax-mode-option" for="tax-mode-grund">
+                    <input id="tax-mode-grund" type="radio" name="tax-table-mode" value="grund" />
+                    <span>Grundtabelle</span>
+                  </label>
+                  <label class="tax-mode-option" for="tax-mode-splitting">
+                    <input id="tax-mode-splitting" type="radio" name="tax-table-mode" value="splitting" />
+                    <span>Splitting</span>
+                  </label>
+                </div>
+              </fieldset>
+            </div>
+
+            <label class="field field-income-compact" for="equity-amount">
+              <span>Eingesetztes Eigenkapital (EUR)</span>
               <input
-                id="annual-gross-income"
+                id="equity-amount"
                 type="number"
-                min="${config.incomeBounds.min}"
-                max="${config.incomeBounds.max}"
-                step="${config.incomeBounds.step}"
+                min="0"
+                step="${equityInputStep}"
                 inputmode="decimal"
               />
+              <small id="out-equity-amount" class="field-meta">-</small>
             </label>
-
-            <fieldset class="field field-tax-mode">
-              <legend>Steuermodell</legend>
-              <div class="tax-mode-switch" role="radiogroup" aria-label="Steuermodell wählen">
-                <label class="tax-mode-option" for="tax-mode-grund">
-                  <input id="tax-mode-grund" type="radio" name="tax-table-mode" value="grund" />
-                  <span>Grundtabelle</span>
-                </label>
-                <label class="tax-mode-option" for="tax-mode-splitting">
-                  <input id="tax-mode-splitting" type="radio" name="tax-table-mode" value="splitting" />
-                  <span>Splitting</span>
-                </label>
-              </div>
-            </fieldset>
           </div>
 
           <p class="tax-model-note tax-model-note-inline">
@@ -636,18 +650,6 @@ app.innerHTML = `
               step="${growthBounds.step}"
             />
             <strong id="out-growth-rate" class="slider-value">-</strong>
-          </label>
-
-          <label class="field" for="equity-amount">
-            <span>Eingesetztes Eigenkapital</span>
-            <input
-              id="equity-amount"
-              type="range"
-              min="${equityBounds.min}"
-              max="${equityBounds.max}"
-              step="${equityBounds.step}"
-            />
-            <strong id="out-equity-amount" class="slider-value">-</strong>
           </label>
 
         </div>
@@ -1187,11 +1189,13 @@ growthInput.addEventListener('input', () => {
 })
 
 equityInput.addEventListener('input', () => {
+  const bounds = getCurrentEquityBounds()
   investedEquity = clamp(
     parseNumber(equityInput.value, investedEquity),
-    equityBounds.min,
-    equityBounds.max,
+    bounds.min,
+    bounds.max,
   )
+  writeEquityInputValue(investedEquity)
   renderConfigEditorSummary()
   refreshEditorDirtyState()
   renderProjection()
@@ -1512,6 +1516,7 @@ applyConfigButton.addEventListener('click', () => {
 
     annualGrossIncome = clamp(annualGrossIncome, config.incomeBounds.min, config.incomeBounds.max)
     annualGrowthRatePercent = clamp(annualGrowthRatePercent, growthBounds.min, growthBounds.max)
+    const equityBounds = getCurrentEquityBounds()
     investedEquity = clamp(investedEquity, equityBounds.min, equityBounds.max)
     depotReturnRatePercent = clamp(depotReturnRatePercent, depotBounds.min, depotBounds.max)
 
@@ -1621,7 +1626,6 @@ function renderProjection(): void {
   setOptionalText('out-final-debt', formatCurrency(result.finalRemainingDebt))
   setOptionalText('out-cashflow20', formatCurrency(result.cumulativeCashflow20))
   setText('out-growth-rate', `${formatSignedPercent(result.annualGrowthRate * 100)} % pro Jahr`)
-  setText('out-equity-amount', formatCurrency(result.startEquity))
   setText('out-path-end', formatCurrency(result.wealth20))
   setText('out-total-investment', formatCurrency(result.totalInvestment))
   setOptionalText(
@@ -1671,6 +1675,7 @@ function calculateProjection(
   const ancillaryCosts = apartment.purchasePrice * assumptions.ancillaryCostRate
   const totalInvestment = apartment.purchasePrice + ancillaryCosts
 
+  const equityBounds = getCurrentEquityBounds()
   const startEquity = clamp(selectedEquity, equityBounds.min, Math.min(equityBounds.max, totalInvestment))
   const initialNetWealth = startEquity - ancillaryCosts
   const debtNeeded = Math.max(totalInvestment - startEquity, 0)
@@ -2674,10 +2679,11 @@ function hydrateStateFromUrl(): void {
 
   const equity = params.get('equity')
   if (equity) {
+    const bounds = getCurrentEquityBounds()
     investedEquity = clamp(
       parseNumber(equity, investedEquity),
-      equityBounds.min,
-      equityBounds.max,
+      bounds.min,
+      bounds.max,
     )
   }
 
@@ -2824,7 +2830,13 @@ function writeGrowthInputValue(value: number): void {
 }
 
 function writeEquityInputValue(value: number): void {
-  equityInput.value = String(Math.round(value))
+  const bounds = getCurrentEquityBounds()
+  const clampedValue = clamp(value, bounds.min, bounds.max)
+  equityInput.min = String(bounds.min)
+  equityInput.max = String(Math.round(bounds.max))
+  equityInput.step = String(equityInputStep)
+  equityInput.value = String(Math.round(clampedValue))
+  setText('out-equity-amount', `Maximal ${formatCurrency(bounds.max)} (Kaufpreis inkl. Nebenkosten)`)
 }
 
 function setStatus(message: string): void {
@@ -2967,9 +2979,7 @@ function getTaxTableLabel(mode: TaxTableMode): string {
 }
 
 function getDefaultEquityForApartment(apartmentId: ApartmentId): number {
-  const apartment = getApartment(apartmentId)
-  const ancillaryCosts = apartment.purchasePrice * assumptions.ancillaryCostRate
-  return clamp(ancillaryCosts, equityBounds.min, equityBounds.max)
+  return getDefaultEquityForApartmentFromConfig(config, apartmentId)
 }
 
 function getCalendarYearForProjectionYear(year: number): number {
@@ -3618,47 +3628,6 @@ function buildConfigSections(): ConfigSection[] {
           get: (value) => value.incomeBounds.step,
           set: (value, next) => {
             value.incomeBounds.step = next
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-income-months-factor',
-          label: 'EK-Monatsfaktor',
-          hint: 'Ableitung des Standard-Eigenkapitals aus dem Einkommen.',
-          mode: 'number',
-          min: 0,
-          max: 24,
-          step: 0.5,
-          get: (value) => value.equityModel.incomeMonthsFactor,
-          set: (value, next) => {
-            value.equityModel.incomeMonthsFactor = next
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-min-equity',
-          label: 'Mindest-Eigenkapital',
-          hint: 'Untergrenze für das Eigenkapital im Rechner.',
-          mode: 'currency',
-          min: 0,
-          step: 500,
-          get: (value) => value.equityModel.minEquity,
-          set: (value, next) => {
-            value.equityModel.minEquity = next
-          },
-        },
-        {
-          type: 'number',
-          id: 'config-max-investment-ratio',
-          label: 'Max. Investitionsquote',
-          hint: 'Deckel für das eingesetzte Eigenkapital relativ zum Investment.',
-          mode: 'percent',
-          min: 0,
-          max: 100,
-          step: 1,
-          get: (value) => value.equityModel.maxTotalInvestmentRatio,
-          set: (value, next) => {
-            value.equityModel.maxTotalInvestmentRatio = next
           },
         },
       ],
@@ -4321,6 +4290,8 @@ function normalizeScenarioDefaults(candidate: ScenarioDefaults, sourceConfig: Ca
     ? candidate.apartmentId
     : fallback.apartmentId
 
+  const equityBounds = getEquityBoundsForApartmentFromConfig(sourceConfig, apartmentId)
+
   return {
     apartmentId,
     taxTableMode: candidate.taxTableMode,
@@ -4416,13 +4387,33 @@ function validateScenarioDefaults(candidate: unknown, sourceConfig: CalculationC
   )
 }
 
-function getDefaultEquityForApartmentFromConfig(sourceConfig: CalculationConfig, apartmentId: ApartmentId): number {
+function getEquityBoundsForApartmentFromConfig(
+  sourceConfig: CalculationConfig,
+  apartmentId: ApartmentId,
+): { min: number; max: number } {
   const apartment = sourceConfig.apartments.find((entry) => entry.id === apartmentId)
   if (!apartment) {
-    return equityBounds.min
+    return { min: 0, max: 0 }
   }
   const ancillaryCosts = apartment.purchasePrice * sourceConfig.assumptions.ancillaryCostRate
-  return clamp(ancillaryCosts, equityBounds.min, equityBounds.max)
+  return {
+    min: 0,
+    max: apartment.purchasePrice + ancillaryCosts,
+  }
+}
+
+function getCurrentEquityBounds(): { min: number; max: number } {
+  return getEquityBoundsForApartmentFromConfig(config, selectedApartmentId)
+}
+
+function getDefaultEquityForApartmentFromConfig(sourceConfig: CalculationConfig, apartmentId: ApartmentId): number {
+  const bounds = getEquityBoundsForApartmentFromConfig(sourceConfig, apartmentId)
+  const apartment = sourceConfig.apartments.find((entry) => entry.id === apartmentId)
+  if (!apartment) {
+    return bounds.min
+  }
+  const ancillaryCosts = apartment.purchasePrice * sourceConfig.assumptions.ancillaryCostRate
+  return clamp(ancillaryCosts, bounds.min, bounds.max)
 }
 
 function getScenarioDefaultEquity(apartmentId: ApartmentId): number {

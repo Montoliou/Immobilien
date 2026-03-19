@@ -1286,11 +1286,16 @@ p {
   gap: var(--space-16);
 }
 
-.income-row {
+.income-layout-grid {
   display: grid;
   gap: var(--space-16);
-  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr);
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+  align-items: start;
+}
+
+.income-stack {
+  display: grid;
+  gap: var(--space-16);
 }
 
 .field {
@@ -1311,7 +1316,18 @@ p {
 }
 
 .field-income-compact input {
+  width: 100%;
   max-width: 280px;
+}
+
+.income-layout-grid .field-income-compact input {
+  max-width: none;
+}
+
+.field-meta {
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  line-height: 1.45;
 }
 
 .field-tax-mode {
@@ -2608,7 +2624,7 @@ p {
     width: 100%;
   }
 
-  .income-row {
+  .income-layout-grid {
     grid-template-columns: 1fr;
   }
 
