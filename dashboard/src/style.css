@@ -879,6 +879,8 @@ p {
 .hero-customer-actions {
   display: flex;
   justify-content: flex-start;
+  gap: var(--space-16);
+  flex-wrap: wrap;
 }
 
 .customer-greeting {
@@ -997,6 +999,10 @@ p {
 
 .hero-location-button {
   width: fit-content;
+}
+
+.hero-customer-actions .btn {
+  min-width: 260px;
 }
 
 .btn {
@@ -2622,6 +2628,10 @@ p {
 
   .hero-location-button {
     width: 100%;
+  }
+
+  .hero-customer-actions .btn {
+    min-width: 0;
   }
 
   .income-layout-grid {

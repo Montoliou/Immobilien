@@ -247,6 +247,7 @@ const CONSULTATION_PHONE_LABEL = 'Direkt anrufen: 0151/19690871'
 const CONSULTATION_PHONE_LINK = 'tel:+4915119690871'
 const BOOKING_URL = 'https://mlp-onlineberatung.flexperto.com/expert?id=782'
 const MAPS_URL = 'https://maps.app.goo.gl/t3fVRBvNyz42xWMp7'
+const BROCHURE_URL = '/brochures/york-living-broschuere.pdf'
 const ADVISOR_APP_ORIGIN = 'https://mlp-mediziner-beratung.de'
 const CUSTOMER_APP_ORIGIN = 'https://montolio.de'
 const CUSTOMER_SCENARIO_QUERY_KEY = 'customer'
@@ -527,6 +528,14 @@ app.innerHTML = `
             >
               Standort auf Google Maps öffnen
             </a>
+            <a
+              class="btn btn-secondary hero-location-button"
+              href="${BROCHURE_URL}"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Projektbroschüre als PDF öffnen
+            </a>
           </div>
           <div id="hero-project-facts" class="hero-project-facts">
             ${customerHeroHighlights
@@ -556,6 +565,14 @@ app.innerHTML = `
             rel="noreferrer noopener"
           >
             Lage auf Google Maps
+          </a>
+          <a
+            class="btn btn-secondary btn-link"
+            href="${BROCHURE_URL}"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            Projektbroschüre als PDF
           </a>
           <button id="copy-scenario-link" class="btn btn-primary" type="button">Kundenlink generieren</button>
         </div>
